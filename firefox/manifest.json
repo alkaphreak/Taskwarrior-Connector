@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "TaskWarrior Connector",
-  "version": "0.3",
+  "version": "0.3.1",
   "description": "Save webpage links to taskwarrior (hardened fork, POST-only, localhost-only)",
   "icons": {
     "48": "icon.png"
@@ -10,7 +10,9 @@
     "gecko": {
       "id": "taskwarrior-connector@alkaphreak.github",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     }
   },
