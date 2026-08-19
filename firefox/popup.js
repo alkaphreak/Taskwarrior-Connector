@@ -9,9 +9,15 @@ browser.tabs.query({active: true, currentWindow: true})
 document.addEventListener('DOMContentLoaded', function () {
     const submitBtn = document.getElementById("submit");
     submitBtn.addEventListener('click', function (evt) {
+        const titleValue = document.getElementById("title").value.trim();
+        const urlValue = document.getElementById("url").value.trim();
+        if (!titleValue || !urlValue) {
+            document.getElementById("status").textContent = "Title and URL are required.";
+            return;
+        }
         const body = new URLSearchParams({
-            title: document.getElementById("title").value,
-            url: document.getElementById("url").value,
+            title: titleValue,
+            url: urlValue,
             tag: document.getElementById("tags").value
         });
         submitBtn.disabled = true;
