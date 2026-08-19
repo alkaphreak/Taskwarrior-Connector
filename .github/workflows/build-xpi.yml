@@ -19,6 +19,25 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Set version for this build
+        run: |
+          # AMO rejects re-signing a version it has already seen ("Version X
+          # already exists"), so manifest.json's committed version can only
+          # ever be signed once. On a real release (v* tag), use the tag as
+          # the canonical version. On any other trigger (workflow_dispatch
+          # test runs), suffix the manifest's base version with the run
+          # number so repeated manual runs each get a unique, valid version
+          # without touching the source file.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            BASE_VERSION=$(jq -r .version firefox/manifest.json)
+            VERSION="${BASE_VERSION}.${GITHUB_RUN_NUMBER}"
+          fi
+          jq --arg v "$VERSION" '.version = $v' firefox/manifest.json > /tmp/manifest.json
+          mv /tmp/manifest.json firefox/manifest.json
+          echo "Signing as version $VERSION"
+
       - name: Lint extension
         run: npx web-ext@10 lint --source-dir=firefox
 
