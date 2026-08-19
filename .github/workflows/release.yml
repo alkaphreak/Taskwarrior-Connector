@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   release:
@@ -67,6 +68,18 @@ jobs:
           git tag "v${{ steps.version.outputs.version }}"
           git push origin HEAD:main
           git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Trigger build-xpi.yml
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A tag pushed with the default GITHUB_TOKEN does NOT trigger other
+          # workflows — GitHub Actions deliberately ignores events raised by
+          # GITHUB_TOKEN pushes, to prevent workflows from recursively
+          # triggering each other. build-xpi.yml's `on.push.tags: v*` never
+          # fires from the push above, so it's dispatched explicitly here,
+          # pointed at the new tag as the ref.
+          gh workflow run build-xpi.yml --repo "${{ github.repository }}" --ref "v${{ steps.version.outputs.version }}"
 
       - name: Summary
         run: |
