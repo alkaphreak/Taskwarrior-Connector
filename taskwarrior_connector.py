@@ -28,6 +28,7 @@ import urllib.parse
 HOST = "127.0.0.1"
 DEFAULT_PORT = 34810
 TASK_TIMEOUT_SECONDS = 10
+TASK_PROJECT = "Links"
 
 
 class TaskError(Exception):
@@ -91,7 +92,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._respond(200, {"ok": True, "duplicate": True, "output": "URL already saved"})
                 return
 
-            result = _run_task(*[f"+{t}" for t in tags], "add", title, f"url:{url}")
+            result = _run_task(*[f"+{t}" for t in tags], "add", title, f"url:{url}", f"project:{TASK_PROJECT}")
         except TaskError as e:
             self._respond(e.status, e.body)
             return
