@@ -44,23 +44,21 @@ More importantly, easily combine with other command tools.
 2. Load the Firefox extension: `about:debugging#/runtime/this-firefox` → "Load Temporary
    Add-on" → pick `firefox/manifest.json`. (Temporary add-ons are removed on Firefox restart —
    reload after each restart, or package as a signed `.xpi` for daily-driver use.)
-3. Let the `taskwarrior_connector.py` to run in background. (Use terminal or use a service manager -> See below)
-4. Add extra attribute `url` for taskwarrior entries 
-
-```bash
-yes | task config uda.url.type string
-yes | task config uda.url.label URL
-```
+3. Run the setup script for your platform (see below) — it configures the `url` UDA
+   Taskwarrior entries need (`task config uda.url.type/label`) and starts
+   `taskwarrior_connector.py` in the background. Safe to re-run any time.
 
 ## For most Linux users-> Systemd setup
 
-Just run `systemd_setup.bash`. It will let the connector script run in background forever.
+Just run `systemd_setup.bash`. It will configure the `url` UDA and let the connector script
+run in background forever.
 
 To uninstall, use the `systemd_cleanup.bash` 
 
 ## For macOS Users -> Launchd setup
 
-Just run `launchd_setup.bash`. It will let the connector script run in background forever.
+Just run `launchd_setup.bash`. It will configure the `url` UDA and let the connector script
+run in background forever.
 
 To uninstall, use the `launchd_cleanup.bash` 
 
