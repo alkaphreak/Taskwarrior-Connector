@@ -1,12 +1,12 @@
 {
   "manifest_version": 2,
   "name": "TaskWarrior Connector",
-  "version": "0.2",
-  "description": "Save webpage links to taskwarrior",
+  "version": "0.3",
+  "description": "Save webpage links to taskwarrior (hardened fork, POST-only, localhost-only)",
   "icons": {
     "48": "icon.png"
   },
-  "browser_action":{
+  "browser_action": {
     "default_icon": "icon.png",
     "default_title": "Taskwarrior",
     "default_popup": "popup.html",
@@ -14,7 +14,6 @@
   },
   "permissions": [
     "activeTab",
-    "tabs",
-    "<all_urls>"
+    "tabs"
   ]
 }

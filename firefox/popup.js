@@ -7,11 +7,23 @@ browser.tabs.query({active: true, currentWindow: true})
 });
 
 document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById("submit").addEventListener('click',function (evt) {
-        fetch("http://127.0.0.1:34810/?title="
-            + encodeURIComponent(document.getElementById("title").value)
-            + "&url=" + encodeURIComponent(document.getElementById("url").value)
-            + "&tag=" + encodeURIComponent(document.getElementById("tags").value))
-        .then(r => console.log(r));
-    })
+    document.getElementById("submit").addEventListener('click', function (evt) {
+        const body = new URLSearchParams({
+            title: document.getElementById("title").value,
+            url: document.getElementById("url").value,
+            tag: document.getElementById("tags").value
+        });
+        fetch("http://127.0.0.1:34810/", {
+            method: "POST",
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            body: body.toString()
+        })
+        .then(r => r.json())
+        .then(j => {
+            document.getElementById("status").textContent = j.ok ? "Saved." : ("Error: " + j.error);
+        })
+        .catch(e => {
+            document.getElementById("status").textContent = "Error: connector not running (" + e + ")";
+        });
+    });
 });
