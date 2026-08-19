@@ -54,11 +54,20 @@ def _run_task(*args: str) -> subprocess.CompletedProcess:
 
 
 class Handler(BaseHTTPRequestHandler):
+    # BaseHTTPRequestHandler defaults to HTTP/1.0 with no explicit Connection
+    # header — the response's end is signaled only by the socket closing.
+    # curl tolerates that; Firefox's fetch() has been observed to report a
+    # bare "NetworkError" on it instead, especially on rapid successive
+    # requests. HTTP/1.1 + an explicit "Connection: close" removes the
+    # ambiguity for stricter clients without needing real keep-alive support.
+    protocol_version = "HTTP/1.1"
+
     def _respond(self, status: int, body: dict):
         payload = json.dumps(body).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-type", "application/json")
         self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(payload)
 
