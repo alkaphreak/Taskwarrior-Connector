@@ -9,6 +9,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "taskwarrior-connector@alkaphreak.github",
+      "update_url": "https://raw.githubusercontent.com/alkaphreak/Taskwarrior-Connector/main/updates.json",
       "data_collection_permissions": {
         "required": [
           "none"
