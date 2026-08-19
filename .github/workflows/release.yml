@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump (ignored if 'version' is set)"
+        required: false
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      version:
+        description: "Exact version to release, e.g. 1.2.0 (overrides 'bump')"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Compute new version
+        id: version
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ inputs.version }}" ]]; then
+            NEW_VERSION="${{ inputs.version }}"
+          else
+            CURRENT=$(jq -r .version firefox/manifest.json)
+            IFS='.' read -ra PARTS <<< "$CURRENT"
+            MAJOR="${PARTS[0]:-0}"
+            MINOR="${PARTS[1]:-0}"
+            PATCH="${PARTS[2]:-0}"
+            case "${{ inputs.bump }}" in
+              major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+              *)     PATCH=$((PATCH + 1)) ;;
+            esac
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          fi
+          if git rev-parse "v${NEW_VERSION}" >/dev/null 2>&1; then
+            echo "::error::Tag v${NEW_VERSION} already exists — pick a different version."
+            exit 1
+          fi
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump manifest.json
+        run: |
+          jq --arg v "${{ steps.version.outputs.version }}" '.version = $v' firefox/manifest.json > /tmp/manifest.json
+          mv /tmp/manifest.json firefox/manifest.json
+
+      - name: Commit, tag and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add firefox/manifest.json
+          git commit -m "Release v${{ steps.version.outputs.version }}"
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin HEAD:main
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Released v${{ steps.version.outputs.version }}"
+            echo ""
+            echo "Tag pushed — [Build signed .xpi](https://github.com/${{ github.repository }}/actions/workflows/build-xpi.yml) starts automatically and attaches the signed .xpi to the [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }})."
+          } >> "$GITHUB_STEP_SUMMARY"
