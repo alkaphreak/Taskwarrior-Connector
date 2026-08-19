@@ -61,7 +61,14 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         cmd = ["task"] + [f"+{t}" for t in tags] + ["add", title, f"url:{url}"]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+        except FileNotFoundError:
+            self._respond(500, {"error": "'task' binary not found — is Taskwarrior installed and on PATH?"})
+            return
+        except OSError as e:
+            self._respond(500, {"error": f"failed to run 'task': {e}"})
+            return
         if result.returncode != 0:
             self._respond(500, {"error": result.stderr.strip() or "task add failed"})
             return
