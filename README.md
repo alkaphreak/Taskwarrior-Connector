@@ -1,13 +1,13 @@
 > [!IMPORTANT]
 > Unmaintained.
-> 
+>
 > An up-to-date fork maybe found in https://github.com/alkaphreak/Taskwarrior-Connector/
 
-# Taskwarrior as a bookmark manager / "read-later app"
+# Send to Taskwarrior — a bookmark manager / "read-later app"
 
 > **Fork notice**: this is a hardened fork of the original (unmaintained since 2022)
-> [shenlebantongying/Taskwarrior-Connector](https://github.com/shenlebantongying/Taskwarrior-Connector).
-> The original daemon had three real issues, fixed here:
+> [shenlebantongying/Taskwarrior-Connector](https://github.com/shenlebantongying/Taskwarrior-Connector)
+> (GPLv3). The original daemon had three real issues, fixed here:
 >
 > 1. **Command injection** — the original built a shell string via concatenation and ran it
 >    through `os.system(...)`. A page whose `<title>` contained a `"` followed by shell
@@ -19,9 +19,16 @@
 >    any page's JS can fire cross-origin without a CORS preflight (CSRF). This fork only
 >    accepts `POST` and requires the `Origin` header to start with `moz-extension://`.
 >
-> Because of fix #3, the extension in `firefox/` now sends a `POST` — it is **not** compatible
-> with the original AMO-listed "Taskwarrior" add-on. Load `firefox/` as a temporary add-on
-> (see below) instead of installing from addons.mozilla.org.
+> On top of the security fixes: duplicate-URL detection (skips re-saving a page you already
+> bookmarked), a `TASK_TIMEOUT_SECONDS` guard so a stuck `task` can't hang the daemon, clear
+> JSON errors instead of silent failures, bookmarks filed under a fixed `project:Links`, and a
+> renamed extension ("Send to Taskwarrior") — distinct from the original's still-live
+> [AMO listing](https://addons.mozilla.org/firefox/addon/taskwarrior/) to avoid confusion between
+> the two.
+>
+> Because of fix #3, the extension in `firefox/` sends a `POST` — it is **not** compatible with
+> the original AMO-listed "Taskwarrior-Connector" add-on. Install this fork's own build instead
+> (see below).
 
 Why? After some research, i just realize that every bookmark managers on this planet suck.
 
@@ -51,9 +58,13 @@ More importantly, easily combine with other command tools.
      → "Load Temporary Add-on" → pick `firefox/manifest.json`.
    - **Permanent** (daily-driver): download the signed `.xpi` from the
      [latest release](https://github.com/alkaphreak/Taskwarrior-Connector/releases/latest)
-     (built by `.github/workflows/build-xpi.yml` on every `v*` tag) and drag it into a Firefox
-     window, or `about:addons` → gear icon → "Install Add-on From File…". Survives restarts,
-     no dev-mode flags needed.
+     (built and signed automatically by `.github/workflows/build-xpi.yml` on every `v*` tag) and
+     drag it into a Firefox window, or `about:addons` → gear icon → "Install Add-on From File…".
+     Survives restarts, no dev-mode flags needed.
+   - **From the Firefox Add-ons store**: pending review as **"Send to Taskwarrior"** — once
+     approved, installing from [addons.mozilla.org](https://addons.mozilla.org/firefox/) will also
+     get automatic updates on future releases, no manual reinstall needed. Link added here once
+     live.
 3. Run the setup script for your platform (see below) — it configures the `url` UDA
    Taskwarrior entries need (`task config uda.url.type/label`) and starts
    `taskwarrior_connector.py` in the background. Safe to re-run any time.
@@ -78,11 +89,36 @@ TaskWarrior is really powerful, and you should really read the [official documen
 
 Here is short list of commonly used commands if you intend to use taskwarrior as bookmark manager:
 
+## List your bookmarks
+
+Every bookmark saved by the extension is filed under a fixed `project:Links`:
+
+```bash
+task project:Links list
+```
+
 ## Open a task's link
 ```bash
 task _get {id}.url | xargs xdg-open # GNU/Linux
 task _get {id}.url | xargs open # macOS
 ```
+
+# Releasing (maintainers)
+
+Two GitHub Actions workflows automate cutting a new version — see `.github/workflows/`:
+
+- **`release.yml`** (`workflow_dispatch`) — bumps `firefox/manifest.json`'s version (`bump`
+  input: patch/minor/major, or an exact `version` override), commits, tags `vX.Y.Z`, pushes, and
+  dispatches `build-xpi.yml` for that tag:
+  ```bash
+  gh workflow run release.yml --repo alkaphreak/Taskwarrior-Connector -f bump=patch
+  ```
+- **`build-xpi.yml`** — lints (`web-ext lint`) and signs (`web-ext sign --channel=unlisted`) the
+  extension via the AMO API (`WEB_EXT_API_KEY`/`WEB_EXT_API_SECRET` repo secrets), uploads the
+  signed `.xpi` as a build artifact, and attaches it to the GitHub Release on real tag runs.
+
+Manual re-runs of `build-xpi.yml` (`workflow_dispatch`, not a tag push) sign a throwaway
+`<version>.<run_number>` build for testing — they don't touch the GitHub Release.
 
 # Development
 
