@@ -1,5 +1,23 @@
 # Taskwarrior as a bookmark manager / "read-later app"
 
+> **Fork notice**: this is a hardened fork of the original (unmaintained since 2022)
+> [shenlebantongying/Taskwarrior-Connector](https://github.com/shenlebantongying/Taskwarrior-Connector).
+> The original daemon had three real issues, fixed here:
+>
+> 1. **Command injection** — the original built a shell string via concatenation and ran it
+>    through `os.system(...)`. A page whose `<title>` contained a `"` followed by shell
+>    metacharacters could execute arbitrary commands. This fork uses `subprocess.run([...])`
+>    with an argument list — no shell is ever invoked.
+> 2. **Bound to all interfaces** — the original's `HTTPServer(('', port), ...)` accepted
+>    requests from any device on the LAN. This fork binds to `127.0.0.1` only.
+> 3. **GET with side effects** — the original triggered `task add` on a plain `GET`, which
+>    any page's JS can fire cross-origin without a CORS preflight (CSRF). This fork only
+>    accepts `POST` and requires the `Origin` header to start with `moz-extension://`.
+>
+> Because of fix #3, the extension in `firefox/` now sends a `POST` — it is **not** compatible
+> with the original AMO-listed "Taskwarrior" add-on. Load `firefox/` as a temporary add-on
+> (see below) instead of installing from addons.mozilla.org.
+
 Why? After some research, i just realize that every bookmark managers on this planet suck.
 
 Firefox's default manager is too primitive for power users.
@@ -23,7 +41,9 @@ More importantly, easily combine with other command tools.
 # INSTALLATION
 
 1. Install [Taskwarrior](https://taskwarrior.org/)
-2. Install the Firefox Extension at <https://addons.mozilla.org/firefox/addon/taskwarrior/>
+2. Load the Firefox extension: `about:debugging#/runtime/this-firefox` → "Load Temporary
+   Add-on" → pick `firefox/manifest.json`. (Temporary add-ons are removed on Firefox restart —
+   reload after each restart, or package as a signed `.xpi` for daily-driver use.)
 3. Let the `taskwarrior_connector.py` to run in background. (Use terminal or use a service manager -> See below)
 4. Add extra attribute `url` for taskwarrior entries 
 
