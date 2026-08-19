@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> Unmaintained.
+> 
+> An up-to-date fork maybe found in https://github.com/alkaphreak/Taskwarrior-Connector/
+
 # Taskwarrior as a bookmark manager / "read-later app"
 
 > **Fork notice**: this is a hardened fork of the original (unmaintained since 2022)
