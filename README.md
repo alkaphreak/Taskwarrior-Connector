@@ -46,9 +46,14 @@ More importantly, easily combine with other command tools.
 # INSTALLATION
 
 1. Install [Taskwarrior](https://taskwarrior.org/)
-2. Load the Firefox extension: `about:debugging#/runtime/this-firefox` → "Load Temporary
-   Add-on" → pick `firefox/manifest.json`. (Temporary add-ons are removed on Firefox restart —
-   reload after each restart, or package as a signed `.xpi` for daily-driver use.)
+2. Load the Firefox extension — two options:
+   - **Temporary** (quick test, lost on every Firefox restart): `about:debugging#/runtime/this-firefox`
+     → "Load Temporary Add-on" → pick `firefox/manifest.json`.
+   - **Permanent** (daily-driver): download the signed `.xpi` from the
+     [latest release](https://github.com/alkaphreak/Taskwarrior-Connector/releases/latest)
+     (built by `.github/workflows/build-xpi.yml` on every `v*` tag) and drag it into a Firefox
+     window, or `about:addons` → gear icon → "Install Add-on From File…". Survives restarts,
+     no dev-mode flags needed.
 3. Run the setup script for your platform (see below) — it configures the `url` UDA
    Taskwarrior entries need (`task config uda.url.type/label`) and starts
    `taskwarrior_connector.py` in the background. Safe to re-run any time.
