@@ -27,6 +27,7 @@ import urllib.parse
 
 HOST = "127.0.0.1"
 DEFAULT_PORT = 34810
+TASK_TIMEOUT_SECONDS = 10
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -62,9 +63,12 @@ class Handler(BaseHTTPRequestHandler):
 
         cmd = ["task"] + [f"+{t}" for t in tags] + ["add", title, f"url:{url}"]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=TASK_TIMEOUT_SECONDS)
         except FileNotFoundError:
             self._respond(500, {"error": "'task' binary not found — is Taskwarrior installed and on PATH?"})
+            return
+        except subprocess.TimeoutExpired:
+            self._respond(504, {"error": f"'task add' timed out after {TASK_TIMEOUT_SECONDS}s — is it waiting on a sync lock or prompt?"})
             return
         except OSError as e:
             self._respond(500, {"error": f"failed to run 'task': {e}"})
