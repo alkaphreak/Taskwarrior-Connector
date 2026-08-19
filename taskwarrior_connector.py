@@ -30,6 +30,28 @@ DEFAULT_PORT = 34810
 TASK_TIMEOUT_SECONDS = 10
 
 
+class TaskError(Exception):
+    """Carries the (status, body) an unrecoverable `task` invocation should respond with."""
+    def __init__(self, status: int, body: dict):
+        self.status = status
+        self.body = body
+
+
+def _run_task(*args: str) -> subprocess.CompletedProcess:
+    """Runs `task <args>`, raising TaskError on anything that should become an HTTP error."""
+    try:
+        result = subprocess.run(["task", *args], capture_output=True, text=True, timeout=TASK_TIMEOUT_SECONDS)
+    except FileNotFoundError:
+        raise TaskError(500, {"error": "'task' binary not found — is Taskwarrior installed and on PATH?"})
+    except subprocess.TimeoutExpired:
+        raise TaskError(504, {"error": f"'task' timed out after {TASK_TIMEOUT_SECONDS}s — is it waiting on a sync lock or prompt?"})
+    except OSError as e:
+        raise TaskError(500, {"error": f"failed to run 'task': {e}"})
+    if result.returncode != 0:
+        raise TaskError(500, {"error": result.stderr.strip() or "'task' command failed"})
+    return result
+
+
 class Handler(BaseHTTPRequestHandler):
     def _respond(self, status: int, body: dict):
         payload = json.dumps(body).encode("utf-8")
@@ -61,22 +83,19 @@ class Handler(BaseHTTPRequestHandler):
             self._respond(400, {"error": "missing title/url"})
             return
 
-        cmd = ["task"] + [f"+{t}" for t in tags] + ["add", title, f"url:{url}"]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=TASK_TIMEOUT_SECONDS)
-        except FileNotFoundError:
-            self._respond(500, {"error": "'task' binary not found — is Taskwarrior installed and on PATH?"})
+            # Skip tasks already deleted, but count completed ones too — this
+            # is a bookmark manager, "Done" means "read", not "gone".
+            existing = _run_task(f"url:{url}", "status.not:deleted", "count")
+            if existing.stdout.strip() not in ("", "0"):
+                self._respond(200, {"ok": True, "duplicate": True, "output": "URL already saved"})
+                return
+
+            result = _run_task(*[f"+{t}" for t in tags], "add", title, f"url:{url}")
+        except TaskError as e:
+            self._respond(e.status, e.body)
             return
-        except subprocess.TimeoutExpired:
-            self._respond(504, {"error": f"'task add' timed out after {TASK_TIMEOUT_SECONDS}s — is it waiting on a sync lock or prompt?"})
-            return
-        except OSError as e:
-            self._respond(500, {"error": f"failed to run 'task': {e}"})
-            return
-        if result.returncode != 0:
-            self._respond(500, {"error": result.stderr.strip() or "task add failed"})
-            return
-        self._respond(200, {"ok": True, "output": result.stdout.strip()})
+        self._respond(200, {"ok": True, "duplicate": False, "output": result.stdout.strip()})
 
 
 def run(port: int = DEFAULT_PORT):

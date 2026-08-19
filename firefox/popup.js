@@ -20,7 +20,11 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(r => r.json())
         .then(j => {
-            document.getElementById("status").textContent = j.ok ? "Saved." : ("Error: " + j.error);
+            if (!j.ok) {
+                document.getElementById("status").textContent = "Error: " + j.error;
+            } else {
+                document.getElementById("status").textContent = j.duplicate ? "Already saved." : "Saved.";
+            }
         })
         .catch(e => {
             document.getElementById("status").textContent = "Error: connector not running (" + e + ")";
