@@ -1,0 +1,18 @@
+{
+  "addons": {
+    "taskwarrior-connector@alkaphreak.github": {
+      "updates": [
+        {
+          "version": "0.3.2",
+          "update_link": "https://github.com/alkaphreak/Taskwarrior-Connector/releases/download/v0.3.2/cb7d03e975ee4c8fad4b-0.3.2.xpi",
+          "update_hash": "sha256:REPLACED_BY_CI_ON_NEXT_RELEASE",
+          "applications": {
+            "gecko": {
+              "strict_min_version": "42.0"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
