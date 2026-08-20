@@ -23,11 +23,13 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import urllib.parse
 
 HOST = "127.0.0.1"
 DEFAULT_PORT = 34810
 TASK_TIMEOUT_SECONDS = 10
+SYNC_TIMEOUT_SECONDS = 15
 TASK_PROJECT = "Links"
 
 
@@ -51,6 +53,21 @@ def _run_task(*args: str) -> subprocess.CompletedProcess:
     if result.returncode != 0:
         raise TaskError(500, {"error": result.stderr.strip() or "'task' command failed"})
     return result
+
+
+def _sync_in_background():
+    """Best-effort `task sync` after a save, off the request thread.
+
+    Never raises: the daemon should still hand back "task saved" to the
+    popup even if the sync server is unreachable, slow, or the local
+    replica is in a weird state — the task is safely on disk either way,
+    sync just moves it toward being pushed to other devices sooner than
+    the next incidental `task sync`.
+    """
+    try:
+        subprocess.run(["task", "sync"], capture_output=True, text=True, timeout=SYNC_TIMEOUT_SECONDS)
+    except Exception:
+        pass
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -105,6 +122,7 @@ class Handler(BaseHTTPRequestHandler):
         except TaskError as e:
             self._respond(e.status, e.body)
             return
+        threading.Thread(target=_sync_in_background, daemon=True).start()
         self._respond(200, {"ok": True, "duplicate": False, "output": result.stdout.strip()})
 
 
