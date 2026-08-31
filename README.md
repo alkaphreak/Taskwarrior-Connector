@@ -3,7 +3,7 @@
 >
 > An up-to-date fork maybe found in https://github.com/alkaphreak/Taskwarrior-Connector/
 
-# Send to Taskwarrior — a bookmark manager / "read-later app"
+# Send to Taskwarrior Hardened — a bookmark manager / "read-later app"
 
 > **Fork notice**: this is a hardened fork of the original (unmaintained since 2022)
 > [shenlebantongying/Taskwarrior-Connector](https://github.com/shenlebantongying/Taskwarrior-Connector)
@@ -22,7 +22,7 @@
 > On top of the security fixes: duplicate-URL detection (skips re-saving a page you already
 > bookmarked), a `TASK_TIMEOUT_SECONDS` guard so a stuck `task` can't hang the daemon, clear
 > JSON errors instead of silent failures, bookmarks filed under a fixed `project:Links`, and a
-> renamed extension ("Send to Taskwarrior") — distinct from the original's still-live
+> renamed extension ("Send to Taskwarrior Hardened") — distinct from the original's still-live
 > [AMO listing](https://addons.mozilla.org/firefox/addon/taskwarrior/) to avoid confusion between
 > the two.
 >
@@ -61,7 +61,7 @@ More importantly, easily combine with other command tools.
      (built and signed automatically by `.github/workflows/build-xpi.yml` on every `v*` tag) and
      drag it into a Firefox window, or `about:addons` → gear icon → "Install Add-on From File…".
      Survives restarts, no dev-mode flags needed.
-   - **From the Firefox Add-ons store**: pending review as **"Send to Taskwarrior"** — once
+   - **From the Firefox Add-ons store**: pending review as **"Send to Taskwarrior Hardened"** — once
      approved, installing from [addons.mozilla.org](https://addons.mozilla.org/firefox/) will also
      get automatic updates on future releases, no manual reinstall needed. Link added here once
      live.
