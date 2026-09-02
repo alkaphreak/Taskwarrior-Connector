@@ -41,7 +41,7 @@ jobs:
       - name: Lint extension
         run: npx web-ext@10 lint --source-dir=firefox
 
-      - name: Sign extension (AMO, unlisted)
+      - name: Sign extension (AMO, listed)
         env:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
           WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
@@ -49,7 +49,7 @@ jobs:
           npx web-ext@10 sign \
             --source-dir=firefox \
             --artifacts-dir=web-ext-artifacts \
-            --channel=unlisted \
+            --channel=listed \
             --api-key="$WEB_EXT_API_KEY" \
             --api-secret="$WEB_EXT_API_SECRET"
 
