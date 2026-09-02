@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Send to Taskwarrior Hardened",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "description": "Save webpage links to Taskwarrior as tagged bookmark tasks. Hardened fork of shenlebantongying/Taskwarrior-Connector (GPLv3): POST-only, localhost-only, no shell injection.",
   "icons": {
     "48": "icon.png"
