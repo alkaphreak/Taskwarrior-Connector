@@ -12,6 +12,7 @@ permissions:
 jobs:
   sign:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
 
@@ -51,6 +52,7 @@ jobs:
             --artifacts-dir=web-ext-artifacts \
             --channel=listed \
             --amo-metadata=.github/amo-metadata.json \
+            --approval-timeout=2700000 \
             --api-key="$WEB_EXT_API_KEY" \
             --api-secret="$WEB_EXT_API_SECRET"
 
