@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- MARSTECH-729, option B "Hex task": thicker strokes for the 16 and 32 px toolbar exports -->
+  <path d="M64 10 L111 37 V91 L64 118 L17 91 V37 Z" fill="#101827" stroke="#2EE6D6" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M38 66 L56 84 L92 46" fill="none" stroke="#FF3D8B" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

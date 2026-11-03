@@ -4,64 +4,237 @@
     <title>Send to Taskwarrior Hardened</title>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
     <style>
+        :root {
+            --ground: #0B0F17;
+            --panel: #121826;
+            --line: #1E2836;
+            --field-line: #2A3650;
+            --text: #E6EDF5;
+            --text-dim: #B4C0D0;
+            --muted: #8A97AB;
+            --accent: #2EE6D6;
+            --on-accent: #06231F;
+            --info: #9DB4FF;
+            --warn: #FFA94D;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            padding: 5px;
-
+            width: 380px;
+            margin: 0;
+            background: var(--panel);
+            color: var(--text);
+            font: 13px/1.4 system-ui, -apple-system, sans-serif;
         }
 
-        .table {
-            display: table;
+        header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--line);
         }
 
-        #submit {
-            margin-left: auto;
-
-            margin-right: auto;
-            width: 450px;
-
+        header h1 {
+            flex-grow: 1;
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
         }
 
-        p {
-            display: table-row;
+        .mono {
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        }
+
+        header .project {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         label {
-            padding-bottom: 5px;
-            display: table-cell;
-            text-align: right;
-            padding-right: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
         }
 
         input {
-            display: table-cell;
-            width: 450px;
+            height: 38px;
+            padding: 0 10px;
+            background: var(--ground);
+            border: 1px solid var(--field-line);
+            border-radius: 6px;
+            color: var(--text);
+            font: inherit;
+        }
 
+        input::placeholder {
+            color: #5C6A80;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(46, 230, 214, 0.25);
+        }
+
+        #url {
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        #submit {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 44px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--accent);
+            color: var(--on-accent);
+            font: 700 14px system-ui, -apple-system, sans-serif;
+            cursor: pointer;
+        }
+
+        #submit:hover:not(:disabled) {
+            background: #5DEDE1;
+        }
+
+        #submit:focus-visible {
+            outline: 2px solid var(--text);
+            outline-offset: 2px;
+        }
+
+        #submit:disabled {
+            background: #1F2A3A;
+            color: var(--muted);
+            cursor: default;
+        }
+
+        #submit:disabled::before {
+            content: "";
+            width: 14px;
+            height: 14px;
+            border: 3px solid var(--field-line);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* #status text is set by popup.js; data-state drives the look. */
+        #status:empty {
+            display: none;
+        }
+
+        #status {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            color: var(--muted);
+            overflow-wrap: anywhere;
+        }
+
+        #status::before {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-top: 1px;
+            background: no-repeat center / 16px 16px;
+        }
+
+        #status[data-state="success"] {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        #status[data-state="success"]::before {
+            content: "";
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%232EE6D6'/%3E%3Cpath d='M7 12.5 10.5 16 17 9' fill='none' stroke='%2306231F' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        }
+
+        #status[data-state="info"] {
+            color: var(--info);
+            font-weight: 600;
+        }
+
+        #status[data-state="info"]::before {
+            content: "";
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%239DB4FF' stroke-width='2'/%3E%3Cpath d='M12 11v6M12 7.5v.1' stroke='%239DB4FF' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
+        }
+
+        #status[data-state="error"],
+        #status[data-state="offline"] {
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 169, 77, 0.35);
+            border-radius: 8px;
+            background: rgba(255, 169, 77, 0.10);
+            color: var(--warn);
+        }
+
+        #status[data-state="error"]::before {
+            content: "";
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 22 20H2Z' fill='none' stroke='%23FFA94D' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M12 10v4M12 17v.1' stroke='%23FFA94D' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
+        }
+
+        #status[data-state="offline"]::before {
+            content: "";
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0ZM12 17v5' fill='none' stroke='%23FFA94D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M3 3 21 21' stroke='%23FFA94D' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
         }
     </style>
 </head>
 <body>
-<div style="width:100%;text-align:right;">
-    <div class="table">
-        <p>
-            <label for="title">title </label>
-            <!-- Remove the hack below to disable autocomplete -->
-            <input autocomplete="off" name="hack" type="text" id="title"><br>
-        </p>
-        <p>
-            <label for="url">url </label>
-            <input  autocomplete="off" name="someUnusualName" type="text" id="url"><br>
-        </p>
-        <p>
-            <label for="tags">tags </label>
-            <input autocomplete="off" name="someUnusualName" type="text" id="tags"><br>
-        </p>
-        <p>
-            <label></label>
-            <button style="text-align:center" id="submit">Add to Taskwarrior!</button>
-        </p>
+<header>
+    <img src="icons/icon-32.png" width="20" height="20" alt="">
+    <h1>Send to Taskwarrior</h1>
+    <span class="project mono">project:Links</span>
+</header>
+<main>
+    <div class="field">
+        <label for="title">Title</label>
+        <!-- Unusual names keep Firefox form autocomplete out of the way -->
+        <input autocomplete="off" name="hack" type="text" id="title">
     </div>
-    <div id="status" style="padding-top:8px;font-size:12px;"></div>
-</div>
+    <div class="field">
+        <label for="url">URL</label>
+        <input autocomplete="off" name="someUnusualName" type="text" id="url" class="mono">
+    </div>
+    <div class="field">
+        <label for="tags">Tags</label>
+        <input autocomplete="off" name="someUnusualName" type="text" id="tags" placeholder="dev read" aria-describedby="tags-hint">
+        <span class="hint" id="tags-hint">Separated by spaces, without +</span>
+    </div>
+    <button id="submit">Add to Taskwarrior</button>
+    <div id="status" role="status" aria-live="polite"></div>
+</main>
 <script src="popup.js"></script>
 </body>
 </html>
