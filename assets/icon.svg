@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <!-- MARSTECH-729, option B "Hex task": used for the 48, 96 and 128 px exports -->
-  <path d="M64 8 L113 36 V92 L64 120 L15 92 V36 Z" fill="#101827" stroke="#2EE6D6" stroke-width="10" stroke-linejoin="round"/>
-  <path d="M40 66 L57 83 L90 48" fill="none" stroke="#FF3D8B" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- MARSTECH-729, MarsTech-Skin "Glacier neon": clipped corners (.mt-clip), surface fill, accent frame, fg check (tokens.css). Used for 48, 96 and 128 px. -->
+  <path d="M32 6 H122 V96 L96 122 H6 V32 Z" fill="#0a0e13" stroke="#7cc7ff" stroke-width="8" stroke-linejoin="miter"/>
+  <path d="M36 66 L56 86 L94 46" fill="none" stroke="#c9d1d9" stroke-width="13" stroke-linecap="square" stroke-linejoin="miter"/>
 </svg>
