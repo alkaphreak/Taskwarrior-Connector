@@ -6,20 +6,30 @@ browser.tabs.query({active: true, currentWindow: true})
         }
 });
 
-// state: "pending" | "success" | "info" | "error" | "offline" (styled in popup.html)
+// state: "idle" | "pending" | "success" | "info" | "error" | "offline" (styled in popup.html)
 function setStatus(text, state) {
     const status = document.getElementById("status");
     status.textContent = text;
     status.dataset.state = state;
 }
 
+// Red border on an empty required field (MarsTech-Skin .input[aria-invalid])
+function markInvalid(id, invalid) {
+    document.getElementById(id).setAttribute("aria-invalid", String(invalid));
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // Title and URL come pre-filled from the tab, so tags is the usual next input.
     document.getElementById("tags").focus();
+    for (const id of ["title", "url"]) {
+        document.getElementById(id).addEventListener("input", () => markInvalid(id, false));
+    }
     const submitBtn = document.getElementById("submit");
     submitBtn.addEventListener('click', function (evt) {
         const titleValue = document.getElementById("title").value.trim();
         const urlValue = document.getElementById("url").value.trim();
+        markInvalid("title", !titleValue);
+        markInvalid("url", !urlValue);
         if (!titleValue || !urlValue) {
             setStatus("Title and URL are required.", "error");
             return;
@@ -30,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
             tag: document.getElementById("tags").value
         });
         submitBtn.disabled = true;
+        submitBtn.textContent = "Saving…";
         setStatus("Saving…", "pending");
         fetch("http://127.0.0.1:34810/", {
             method: "POST",
@@ -55,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .finally(() => {
             submitBtn.disabled = false;
+            submitBtn.textContent = "Add to Taskwarrior";
         });
     });
 });

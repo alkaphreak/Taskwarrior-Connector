@@ -1,0 +1,89 @@
+/* MarsTech-Skin/tokens.css
+ * MarsTech design system, "Glacier néon" direction (MARSTECH-851, proposal H5).
+ * Shared by sol4.space (MLS), MarsTech-CV-Website and the Taskwarrior-Connector Firefox popup.
+ * Follows the Open Design TOKEN_SCHEMA (56 tokens). Brand extensions live in marstech.css.
+ * Contrast: every text/background pair below is >= 4.5:1 (WCAG AA), checked 2026-11-03.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Surface */
+  --bg: #05070a;
+  --surface: #0a0e13;
+  --surface-warm: #0f141b;
+
+  /* Foreground */
+  --fg: #c9d1d9;
+  --fg-2: #a9b4c0;
+  --muted: #8692a0;
+  --meta: #76828f;
+
+  /* Border */
+  --border: #233140;
+  --border-soft: #18222d;
+
+  /* Accent: ice blue, at most two visible uses per screen */
+  --accent: #7cc7ff;
+  --accent-on: #021220;
+  --accent-hover: #a3d8ff;
+  --accent-active: #5fb4f0;
+
+  /* Status */
+  --success: #5fd4a0;
+  --warn: #ffcf4a;
+  --danger: #ff6b6b;
+
+  /* Type: served locally in production, never from Google Fonts at runtime */
+  --font-display: "Oxanium", "IBM Plex Sans", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 21px;
+  --text-2xl: 28px;
+  --text-3xl: 38px;
+  --text-4xl: 52px;
+  --leading-body: 1.55;
+  --leading-tight: 1.12;
+  --tracking-display: 0.04em;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --section-y-desktop: 80px;
+  --section-y-tablet: 56px;
+  --section-y-phone: 40px;
+
+  /* Shape: square corners; the 45 degree clipped corner comes from marstech.css */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-pill: 9999px;
+
+  /* Elevation: no blur shadows, hairlines only */
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
+  --elev-raised: 0 0 0 1px var(--border), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+  /* Motion */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layout */
+  --container-max: 1120px;
+  --container-gutter-desktop: 32px;
+  --container-gutter-tablet: 24px;
+  --container-gutter-phone: 16px;
+}
