@@ -9,7 +9,8 @@
 
 use std::io::Read;
 use std::process::{Command, Stdio};
-use std::time::Duration;
+use std::sync::mpsc;
+use std::time::{Duration, Instant};
 use std::{env, thread};
 
 use serde_json::{Value, json};
@@ -39,7 +40,19 @@ impl TaskError {
     }
 }
 
+/// Reads a pipe to EOF on its own thread, so a verbose command never blocks on a full pipe.
+fn drain(mut pipe: impl Read + Send + 'static) -> mpsc::Receiver<String> {
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = pipe.read_to_end(&mut buf);
+        let _ = tx.send(String::from_utf8_lossy(&buf).into_owned());
+    });
+    rx
+}
+
 /// Runs `<program> <args>` and returns its stdout, mapping every failure to an HTTP error.
+/// `timeout` bounds both the process and the collection of its output.
 fn run_task(
     program: &str,
     path: &str,
@@ -60,8 +73,9 @@ fn run_task(
             ),
             _ => TaskError::new(500, format!("failed to run 'task': {e}")),
         })?;
-    // ponytail: pipes are read after exit; fine for `task add`/`count` output (a few lines),
-    // a reader thread per pipe if a command ever prints more than the 64 KB pipe buffer.
+    let deadline = Instant::now() + timeout;
+    let stdout_rx = drain(child.stdout.take().expect("piped stdout"));
+    let stderr_rx = drain(child.stderr.take().expect("piped stderr"));
     let status = match child.wait_timeout(timeout) {
         Ok(Some(status)) => status,
         Ok(None) => {
@@ -77,14 +91,17 @@ fn run_task(
         }
         Err(e) => return Err(TaskError::new(500, format!("failed to run 'task': {e}"))),
     };
-    let mut stdout = String::new();
-    let mut stderr = String::new();
-    if let Some(mut out) = child.stdout.take() {
-        let _ = out.read_to_string(&mut stdout);
-    }
-    if let Some(mut err) = child.stderr.take() {
-        let _ = err.read_to_string(&mut stderr);
-    }
+    // A hook's background descendant can inherit the pipes and hold them open after `task`
+    // exits: stop waiting at the deadline (plus a short grace) and keep what was read.
+    // ponytail: output is then empty, so a `count` reads as 0; a hook that daemonizes without
+    // closing stdout is a hook bug, and the request still answers instead of hanging.
+    let collect = |rx: &mpsc::Receiver<String>| {
+        let left = deadline.saturating_duration_since(Instant::now());
+        rx.recv_timeout(left.max(Duration::from_millis(200)))
+            .unwrap_or_default()
+    };
+    let stdout = collect(&stdout_rx);
+    let stderr = collect(&stderr_rx);
     if !status.success() {
         let stderr = stderr.trim();
         return Err(TaskError::new(
@@ -114,6 +131,20 @@ fn outcome(status: u16, body: Value) -> Outcome {
     }
 }
 
+/// Method and Origin checks, done before the body is read (as the Python did): a rejected
+/// request never gets to make the single serving thread wait on its body.
+fn reject(method: &Method, origin: Option<&str>) -> Option<Outcome> {
+    match method {
+        Method::Post => {}
+        Method::Get => return Some(outcome(404, json!({"error": "use POST"}))),
+        _ => return Some(outcome(501, json!({"error": "unsupported method"}))),
+    }
+    if !origin.is_some_and(|o| o.starts_with("moz-extension://")) {
+        return Some(outcome(403, json!({"error": "forbidden origin"})));
+    }
+    None
+}
+
 /// Request logic, independent of the HTTP library so it can be tested with a fake `task`.
 fn handle(
     method: &Method,
@@ -121,13 +152,8 @@ fn handle(
     body: &[u8],
     task: &dyn Fn(&[String]) -> Result<String, TaskError>,
 ) -> Outcome {
-    match method {
-        Method::Post => {}
-        Method::Get => return outcome(404, json!({"error": "use POST"})),
-        _ => return outcome(501, json!({"error": "unsupported method"})),
-    }
-    if !origin.is_some_and(|o| o.starts_with("moz-extension://")) {
-        return outcome(403, json!({"error": "forbidden origin"}));
+    if let Some(rejected) = reject(method, origin) {
+        return rejected;
     }
 
     let Ok(body) = std::str::from_utf8(body) else {
@@ -188,15 +214,18 @@ fn respond(mut request: Request, path: &str, task_bin: &str) {
         .iter()
         .find(|h| h.field.equiv("Origin"))
         .map(|h| h.value.as_str().to_owned());
+    let run = |args: &[String]| run_task(task_bin, path, args, TASK_TIMEOUT);
     let mut body = Vec::new();
-    let read_ok = request
+    // ponytail: an allowed client (the extension) that stalls mid-body still blocks this thread;
+    // tiny_http exposes no socket read timeout, per-request threads if that ever matters.
+    let out = if let Some(rejected) = reject(request.method(), origin.as_deref()) {
+        rejected
+    } else if request
         .as_reader()
         .take(MAX_BODY_BYTES + 1)
         .read_to_end(&mut body)
-        .is_ok();
-
-    let run = |args: &[String]| run_task(task_bin, path, args, TASK_TIMEOUT);
-    let out = if !read_ok {
+        .is_err()
+    {
         outcome(400, json!({"error": "unreadable body"}))
     } else if body.len() as u64 > MAX_BODY_BYTES {
         outcome(413, json!({"error": "request body too large"}))
@@ -395,6 +424,17 @@ mod tests {
             run_task(&ok, &path, &["add".into(), "a b".into()], TASK_TIMEOUT).unwrap(),
             "add a b\n"
         );
+        // More than a pipe buffer of output must not block until the timeout.
+        let verbose = script("verbose", "head -c 300000 /dev/zero | tr '\\0' x");
+        assert_eq!(
+            run_task(&verbose, &path, none, TASK_TIMEOUT).unwrap().len(),
+            300_000
+        );
+        // A background descendant holding stdout open must not outlive the deadline.
+        let daemonizing = script("daemonizing", "echo saved; sleep 30 &");
+        let started = Instant::now();
+        assert!(run_task(&daemonizing, &path, none, Duration::from_secs(1)).is_ok());
+        assert!(started.elapsed() < Duration::from_secs(3));
     }
 
     #[test]

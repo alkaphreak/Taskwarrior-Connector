@@ -26,7 +26,7 @@ Description=TaskWarrior Connector
 [Service]
 Type=simple
 StandardOutput=journal
-ExecStart="${prog}"
+ExecStart=\"${prog}\"
 
 [Install]
 WantedBy=default.target"
