@@ -19,6 +19,8 @@
         p { margin: 0; }
         :focus-visible { outline: none; box-shadow: var(--focus-ring); }
         .mt-clip { clip-path: polygon(var(--mt-clip) 0, 100% 0, 100% calc(100% - var(--mt-clip)), calc(100% - var(--mt-clip)) 100%, 0 100%, 0 var(--mt-clip)); }
+        /* clip-path would also cut the focus ring (box-shadow): drop the clip while focused */
+        .mt-clip:focus-visible { clip-path: none; }
         .mt-meta { font: var(--text-xs)/1.4 var(--font-mono); color: var(--meta); white-space: nowrap; }
         .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 var(--space-4); font: 600 var(--text-xs)/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); }
         .btn-primary { background: var(--accent); color: var(--accent-on); }
