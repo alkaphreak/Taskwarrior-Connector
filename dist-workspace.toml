@@ -23,3 +23,8 @@ dispatch-releases = true
 # Sign and attach the Firefox .xpi to the release dist just created
 post-announce-jobs = ["./build-xpi"]
 github-custom-job-permissions = { "build-xpi" = { contents = "write" } }
+
+# GitHub's macOS arm64 runners lack capacity (v0.4.0's aarch64 job was never picked up):
+# cross-compile Apple Silicon on the Intel runner, which starts in seconds.
+[dist.github-custom-runners]
+aarch64-apple-darwin = "macos-15-intel"
