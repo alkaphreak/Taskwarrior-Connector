@@ -1,0 +1,107 @@
+name: Bump version and release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump (ignored if 'version' is set)"
+        required: false
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      version:
+        description: "Exact version to release, e.g. 1.2.0 (overrides 'bump')"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Compute new version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_BUMP: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$INPUT_VERSION" ]]; then
+            NEW_VERSION="$INPUT_VERSION"
+          else
+            CURRENT=$(jq -r .version firefox/manifest.json)
+            IFS='.' read -ra PARTS <<< "$CURRENT"
+            MAJOR="${PARTS[0]:-0}"
+            MINOR="${PARTS[1]:-0}"
+            PATCH="${PARTS[2]:-0}"
+            case "$INPUT_BUMP" in
+              major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+              *)     PATCH=$((PATCH + 1)) ;;
+            esac
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          fi
+          # Checked before anything is pushed: dist rejects a non-semver crate version, and a
+          # pushed tag cannot be reused.
+          if [[ ! "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be X.Y.Z (got '${NEW_VERSION}')."
+            exit 1
+          fi
+          if git rev-parse "v${NEW_VERSION}" >/dev/null 2>&1; then
+            echo "::error::Tag v${NEW_VERSION} already exists — pick a different version."
+            exit 1
+          fi
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump manifest.json, Cargo.toml and Cargo.lock
+        env:
+          V: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          jq --arg v "$V" '.version = $v' firefox/manifest.json > /tmp/manifest.json
+          mv /tmp/manifest.json firefox/manifest.json
+          # One version for the extension and the connector: dist refuses a tag that does not
+          # match the crate version.
+          perl -0pi -e 's/^version = "[^"]*"/version = "$ENV{V}"/m' connector/Cargo.toml
+          perl -0pi -e 's/(name = "taskwarrior-connector"\nversion = )"[^"]*"/$1"$ENV{V}"/' Cargo.lock
+          grep -q "^version = \"$V\"" connector/Cargo.toml
+          grep -A1 'name = "taskwarrior-connector"' Cargo.lock | grep -q "version = \"$V\""
+
+      - name: Commit, tag and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add firefox/manifest.json connector/Cargo.toml Cargo.lock
+          git commit -m "Release v${{ steps.version.outputs.version }}"
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin HEAD:main
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Trigger the dist release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A tag pushed with the default GITHUB_TOKEN does NOT trigger other
+          # workflows (GitHub's guard against recursive runs), so dist's
+          # release.yml runs on workflow_dispatch (dispatch-releases = true).
+          # It builds the connector binaries, publishes the GitHub Release and
+          # the Homebrew formula, then calls build-xpi.yml to attach the .xpi.
+          gh workflow run release.yml --repo "${{ github.repository }}" --ref "v${{ steps.version.outputs.version }}" -f tag="v${{ steps.version.outputs.version }}"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Released v${{ steps.version.outputs.version }}"
+            echo ""
+            echo "Tag pushed: the [dist release](https://github.com/${{ github.repository }}/actions/workflows/release.yml) builds the connector binaries and the Homebrew formula, then signs the .xpi and attaches everything to the [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }})."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
-# Installs taskwarrior_connector.py as a macOS LaunchAgent so it runs in the
+# Installs the taskwarrior-connector binary as a macOS LaunchAgent so it runs in the
 # background and restarts on crash/login.
 set -euo pipefail
 
 label="org.taskwarrior.connector"
 plist="$HOME/Library/LaunchAgents/${label}.plist"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-prog="${script_dir}/taskwarrior_connector.py"
+# The connector binary: installed by Homebrew or the release's shell installer (on PATH),
+# else a local `cargo build --release` of this repo.
+prog="$(command -v taskwarrior-connector || true)"
+[ -n "$prog" ] || prog="${script_dir}/target/release/taskwarrior-connector"
+if [ ! -x "$prog" ]; then
+  echo "taskwarrior-connector not found: brew install alkaphreak/tap/taskwarrior-connector, or cargo build --release" >&2
+  exit 1
+fi
 
 # The daemon stores each bookmark's URL in a `url` UDA — required for it to
 # be written at all, and for MARSTECH-697's duplicate-URL detection to find
@@ -26,7 +33,6 @@ cat > "$plist" <<PLIST
     <string>${label}</string>
     <key>ProgramArguments</key>
     <array>
-      <string>/usr/bin/python3</string>
       <string>${prog}</string>
     </array>
     <key>RunAtLoad</key>
