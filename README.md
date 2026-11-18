@@ -185,6 +185,12 @@ Recovery:
   by Runner of type hosted"), register a temporary self-hosted Intel Mac runner with a custom
   label, point both macOS targets at that label in `dist-workspace.toml`, release, then revert
   and unregister it (done for 0.5.0). A self-hosted runner cannot reuse a hosted label.
+  Make that switch before `bump-version.yml`: the release runs from the tag, so a runner
+  change pushed to `main` afterwards is never seen, and the version cannot be bumped again.
+- If AMO rejected the signing before the upload (the log shows no version ID, for example a
+  400 on the metadata), re-running the failed `build-xpi` job is safe.
+- AMO caps API writes per hour for the key shared by signing and `amo-listing.yml`: leave an
+  hour between a listing run and a release.
 - A bad version already on AMO cannot be rolled back: disable it in the Developer Hub and fix
   forward with a patch release.
 

@@ -59,7 +59,9 @@ jobs:
           if [[ -z "$PREV" && $(git tag | wc -l) -gt 1 ]]; then
             echo "No previous tag found before $RELEASE_TAG although tags exist" >&2; exit 1
           fi
+          # Scopes amo, ci and dist are maintainer tooling (listing, CI, release): not for users.
           NOTES=$(git log --format=%s "${PREV:+$PREV..}$RELEASE_TAG" \
+            | sed -E '/^(feat|fix)\((amo|ci|dist)\)/d' \
             | sed -nE 's/^(feat|fix)(\([^)]*\))?!?: //p' | sed -E 's/( \([^)]*\))+$//; s/^/- /')
           [[ -n "$NOTES" ]] || NOTES="- Maintenance release."
           # AMO caps release_notes at 3000 characters: keep whole bullets only.
