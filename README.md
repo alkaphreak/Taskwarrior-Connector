@@ -166,8 +166,12 @@ Recovery:
 
 - If the tag was pushed but the dispatch failed, run
   `gh workflow run release.yml --ref vX.Y.Z -f tag=vX.Y.Z`.
-- If AMO signing timed out (it runs last, after the release is public), re-run the failed
-  `custom-build-xpi` job from the Actions page.
+- If AMO signing timed out (it runs last, after the release is public), do not re-run the job:
+  the version is already uploaded and AMO rejects it a second time. Wait for AMO's approval,
+  download the signed file from the AMO Developer Hub, then
+  `gh release upload vX.Y.Z <file>.xpi`.
+- A bad version already on AMO cannot be rolled back: disable it in the Developer Hub and fix
+  forward with a patch release.
 
 ## License
 
