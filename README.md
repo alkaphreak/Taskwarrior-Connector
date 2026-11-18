@@ -154,11 +154,11 @@ gh workflow run bump-version.yml --repo alkaphreak/Taskwarrior-Connector -f bump
   - pushes the Homebrew formula to `alkaphreak/homebrew-tap`;
   - calls `build-xpi.yml`.
 - **`build-xpi.yml`**:
-  - lints the extension and signs it on AMO (listed channel);
+  - on a release, lints the extension and signs it on AMO (listed channel);
   - attaches the signed `.xpi` to the release;
-  - a manual run (`workflow_dispatch`) builds `<version>.<run_number>` and also submits it to
-    AMO on the listed channel, which publishes it once approved (0.3.11.14 went public that
-    way): run it by hand only to publish.
+  - a manual run (`workflow_dispatch`) builds `<version>.<run_number>` and signs it on the
+    unlisted channel: never published on AMO nor auto-updated, the `.xpi` is a workflow
+    artifact to install by hand.
 - **`connector-ci.yml`**: runs fmt, clippy and the tests on pushes to `main` and on pull requests
   that touch the connector.
 

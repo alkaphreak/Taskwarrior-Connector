@@ -8,7 +8,8 @@ on:
       plan:
         required: true
         type: string
-  # Manual test build: signed with a run-number suffix, kept as a workflow artifact only.
+  # Manual test build: signed with a run-number suffix on AMO's unlisted channel (never
+  # published or auto-updated), kept as a workflow artifact.
   workflow_dispatch: {}
 
 permissions:
@@ -50,15 +51,18 @@ jobs:
       - name: Lint extension
         run: npx web-ext@10 lint --source-dir=firefox
 
-      - name: Sign extension (AMO, listed)
+      - name: Sign extension (AMO, listed for a release, unlisted for a manual run)
         env:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
           WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
         run: |
+          # A manual run must not reach the listed channel: 0.4.0.N sorts above 0.4.0, so a
+          # listed test build would auto-update every user to it.
+          if [[ -n "$RELEASE_TAG" ]]; then CHANNEL=listed; else CHANNEL=unlisted; fi
           npx web-ext@10 sign \
             --source-dir=firefox \
             --artifacts-dir=web-ext-artifacts \
-            --channel=listed \
+            --channel="$CHANNEL" \
             --amo-metadata=.github/amo-metadata.json \
             --approval-timeout=2700000 \
             --api-key="$WEB_EXT_API_KEY" \
