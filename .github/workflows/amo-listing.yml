@@ -1,0 +1,63 @@
+name: Update AMO listing
+
+# Pushes the public AMO listing (text, icon, screenshots) from the repo. web-ext sign only sends
+# the "version" object of amo-metadata.json for an existing add-on, so the listing itself goes
+# through the add-on edit API. Run it by hand after changing .github/amo-listing.json, the
+# 128px icon or assets/screenshots/*.png: it replaces the listing, so a rerun is safe.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ADDON: taskwarrior-connector@alkaphreak.github
+      API: https://addons.mozilla.org/api/v5/addons/addon
+      WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
+      WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Push listing, icon and screenshots
+        run: |
+          set -euo pipefail
+          # One fresh JWT per request: AMO rejects a reused jti, and exp is capped at 5 minutes.
+          jwt() {
+            python3 - <<'EOF'
+          import base64, hashlib, hmac, json, os, time, uuid
+          b = lambda d: base64.urlsafe_b64encode(json.dumps(d).encode()).rstrip(b"=")
+          now = int(time.time())
+          msg = b({"alg": "HS256", "typ": "JWT"}) + b"." + b({"iss": os.environ["WEB_EXT_API_KEY"], "jti": str(uuid.uuid4()), "iat": now, "exp": now + 60})
+          sig = base64.urlsafe_b64encode(hmac.new(os.environ["WEB_EXT_API_SECRET"].encode(), msg, hashlib.sha256).digest()).rstrip(b"=")
+          print((msg + b"." + sig).decode())
+          EOF
+          }
+          # The error body goes to stderr: an AMO 400 names the rejected field.
+          amo() {
+            local out; out=$(mktemp)
+            curl -sS --fail-with-body -o "$out" -H "Authorization: JWT $(jwt)" "$@" || { cat "$out" >&2; exit 1; }
+            cat "$out"; rm -f "$out"
+          }
+          URL="$API/$ADDON/"
+
+          amo -X PATCH -H "Content-Type: application/json" --data @.github/amo-listing.json "$URL" > /dev/null
+          amo -X PATCH -F "icon=@firefox/icons/icon-128.png" "$URL" > /dev/null
+
+          # Replace the screenshots: upload assets/screenshots/*.png in name order first, then
+          # delete the old ones, so a failed upload never leaves the listing without screenshots.
+          detail=$(amo "$URL")
+          old_ids=$(jq -r '.previews[].id' <<< "$detail")
+          pos=0
+          for png in assets/screenshots/*.png; do
+            amo -X POST -F "image=@$png" -F "position=$pos" "${URL}previews/" > /dev/null
+            pos=$((pos + 1))
+          done
+          for id in $old_ids; do
+            amo -X DELETE "${URL}previews/$id/" > /dev/null
+          done
+
+          amo "$URL" | jq '{summary: .summary, homepage: .homepage.url, support_url: .support_url.url, categories, tags, icon_url, previews: [.previews[].image_url]}'

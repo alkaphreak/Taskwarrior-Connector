@@ -8,6 +8,8 @@ tags, a project and an optional note, from a toolbar button.
   the extension and runs `task add`
 - **Platforms**: Firefox on macOS and Linux (x86_64 and aarch64)
 
+![The popup after a save](assets/screenshots/2-saved.png)
+
 This is a hardened fork of
 [shenlebantongying/Taskwarrior-Connector](https://github.com/shenlebantongying/Taskwarrior-Connector),
 unmaintained since 2022. It is not compatible with the original add-on: see [Security](#security).
@@ -161,6 +163,12 @@ gh workflow run bump-version.yml --repo alkaphreak/Taskwarrior-Connector -f bump
   - a manual run (`workflow_dispatch`) builds `<version>.<run_number>` and signs it on the
     unlisted channel: never published on AMO nor auto-updated, the `.xpi` is a workflow
     artifact to install by hand.
+- **`amo-listing.yml`** (manual dispatch, not part of a release): pushes the public AMO listing
+  from the repo: name, summary and description in English and French plus homepage, support
+  URL, categories and tags (`.github/amo-listing.json`), the icon (`firefox/icons/icon-128.png`)
+  and the screenshots (`assets/screenshots/*.png`, rendered by `assets/screenshots/render.sh`).
+  Run `gh workflow run amo-listing.yml --repo alkaphreak/Taskwarrior-Connector` after changing
+  any of them.
 - **`connector-ci.yml`**: runs fmt, clippy and the tests on pushes to `main` and on pull requests
   that touch the connector.
 

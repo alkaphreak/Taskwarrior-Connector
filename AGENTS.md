@@ -20,6 +20,12 @@ contracts.
   (scope and trailing `(...)` groups such as ticket IDs and `(#N)` stripped). No CHANGELOG: the
   commit subject is the release note. web-ext sends the metadata's `version` object with every
   new version.
+- **AMO listing**: the public listing (texts EN/FR, homepage, support URL, categories, tags,
+  icon, screenshots) lives in `.github/amo-listing.json`, `firefox/icons/icon-128.png` and
+  `assets/screenshots/`, pushed by the manual `amo-listing.yml` through the add-on edit API
+  (web-ext sign never updates it). Tags must come from AMO's closed list
+  (`/api/v5/addons/tags/`). Descriptions are Markdown: AMO shows HTML tags as plain text. Regenerate the screenshots with `assets/screenshots/render.sh`
+  after a popup change.
 - **Lint**: `npx web-ext@10 lint --source-dir=firefox`, the same version as CI. Connector:
   `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`.
 - **Packaging**: everything under `firefox/` ships in the `.xpi`. Design sources (SVG icon
