@@ -13,7 +13,7 @@ permissions:
 jobs:
   listing:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     env:
       ADDON: taskwarrior-connector@alkaphreak.github
       API: https://addons.mozilla.org/api/v5/addons/addon
@@ -36,10 +36,17 @@ jobs:
           print((msg + b"." + sig).decode())
           EOF
           }
-          # The error body goes to stderr: an AMO 400 names the rejected field.
+          # AMO throttles uploads (429 "Expected available in N seconds"): wait and retry with a
+          # fresh JWT. Any other error prints its body to stderr: an AMO 400 names the rejected field.
           amo() {
-            local out; out=$(mktemp)
-            curl -sS --fail-with-body -o "$out" -H "Authorization: JWT $(jwt)" "$@" || { cat "$out" >&2; exit 1; }
+            local out code try; out=$(mktemp)
+            for try in 1 2 3 4 5 6; do
+              code=$(curl -sS -o "$out" -w '%{http_code}' -H "Authorization: JWT $(jwt)" "$@")
+              [[ $code != 429 ]] && break
+              echo "AMO throttled ($(cat "$out")), retry $try in 65 s" >&2
+              sleep 65
+            done
+            [[ $code == 2* ]] || { echo "AMO HTTP $code: $(cat "$out")" >&2; exit 1; }
             cat "$out"; rm -f "$out"
           }
           URL="$API/$ADDON/"
