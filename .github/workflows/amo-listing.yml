@@ -4,8 +4,15 @@ name: Update AMO listing
 # the "version" object of amo-metadata.json for an existing add-on, so the listing itself goes
 # through the add-on edit API. Run it by hand after changing .github/amo-listing.json, the
 # 128px icon or assets/screenshots/*.png: it replaces the listing, so a rerun is safe.
+# AMO also has an hourly write quota: after a partial run, rerun with screenshots_only so the
+# listing text and icon, already applied, do not spend it again.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      screenshots_only:
+        description: Only replace the screenshots (listing text and icon already up to date)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -19,6 +26,7 @@ jobs:
       API: https://addons.mozilla.org/api/v5/addons/addon
       WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
       WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
+      SCREENSHOTS_ONLY: ${{ inputs.screenshots_only }}
     steps:
       - uses: actions/checkout@v5
 
@@ -36,23 +44,31 @@ jobs:
           print((msg + b"." + sig).decode())
           EOF
           }
-          # AMO throttles uploads (429 "Expected available in N seconds"): wait and retry with a
-          # fresh JWT. Any other error prints its body to stderr: an AMO 400 names the rejected field.
+          # AMO throttles (429 "Expected available in N seconds"): a per-minute wait is retried
+          # with a fresh JWT; an hourly one (over 5 min) stops the run, rerun it once it has passed.
+          # Any other error prints its body to stderr: an AMO 400 names the rejected field.
           amo() {
-            local out code try; out=$(mktemp)
+            local out code try wait; out=$(mktemp)
             for try in 1 2 3 4 5 6; do
               code=$(curl -sS -o "$out" -w '%{http_code}' -H "Authorization: JWT $(jwt)" "$@")
               [[ $code != 429 ]] && break
-              echo "AMO throttled ($(cat "$out")), retry $try in 65 s" >&2
-              sleep 65
+              wait=$(jq -r '.detail' "$out" | grep -o '[0-9]\+ seconds' | grep -o '[0-9]\+' || echo 60)
+              if (( wait > 300 )); then
+                echo "AMO hourly quota reached, rerun after $((wait / 60 + 1)) min (screenshots_only if the text and icon went through)" >&2
+                exit 1
+              fi
+              echo "AMO throttled, retry $try in $((wait + 5)) s" >&2
+              sleep $((wait + 5))
             done
             [[ $code == 2* ]] || { echo "AMO HTTP $code: $(cat "$out")" >&2; exit 1; }
             cat "$out"; rm -f "$out"
           }
           URL="$API/$ADDON/"
 
-          amo -X PATCH -H "Content-Type: application/json" --data @.github/amo-listing.json "$URL" > /dev/null
-          amo -X PATCH -F "icon=@firefox/icons/icon-128.png" "$URL" > /dev/null
+          if [[ "$SCREENSHOTS_ONLY" != true ]]; then
+            amo -X PATCH -H "Content-Type: application/json" --data @.github/amo-listing.json "$URL" > /dev/null
+            amo -X PATCH -F "icon=@firefox/icons/icon-128.png" "$URL" > /dev/null
+          fi
 
           # Replace the screenshots: upload assets/screenshots/*.png in name order first, then
           # delete the old ones, so a failed upload never leaves the listing without screenshots.

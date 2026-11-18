@@ -168,7 +168,8 @@ gh workflow run bump-version.yml --repo alkaphreak/Taskwarrior-Connector -f bump
   URL, categories and tags (`.github/amo-listing.json`), the icon (`firefox/icons/icon-128.png`)
   and the screenshots (`assets/screenshots/*.png`, rendered by `assets/screenshots/render.sh`).
   Run `gh workflow run amo-listing.yml --repo alkaphreak/Taskwarrior-Connector` after changing
-  any of them.
+  any of them. AMO caps writes per hour: if a run stops on that quota after the text and icon
+  went through, rerun it later with `-f screenshots_only=true`.
 - **`connector-ci.yml`**: runs fmt, clippy and the tests on pushes to `main` and on pull requests
   that touch the connector.
 
