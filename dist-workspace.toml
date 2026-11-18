@@ -29,4 +29,7 @@ github-custom-job-permissions = { "build-xpi" = { contents = "write" } }
 [dist.github-custom-runners]
 # If macos-15-intel is not acquired (it happened for v0.5.0), register a temporary self-hosted
 # runner with a custom label and point these targets at it (README, Releasing).
-aarch64-apple-darwin = "macos-15-intel"
+# TEMPORARY (MARSTECH-911, 2026-11-18): both macOS targets on the maintainer's self-hosted
+# Intel Mac for 0.5.1, as for 0.5.0. Revert right after the release; the runner is unregistered then.
+aarch64-apple-darwin = "marstech-mbp"
+x86_64-apple-darwin = "marstech-mbp"
