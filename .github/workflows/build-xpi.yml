@@ -62,7 +62,9 @@ jobs:
           NOTES=$(git log --format=%s "${PREV:+$PREV..}$RELEASE_TAG" \
             | sed -nE 's/^(feat|fix)(\([^)]*\))?!?: //p' | sed -E 's/( \([^)]*\))+$//; s/^/- /')
           [[ -n "$NOTES" ]] || NOTES="- Maintenance release."
-          NOTES=${NOTES:0:2900} # AMO caps release_notes at 3000 characters
+          # AMO caps release_notes at 3000 characters: keep whole bullets only.
+          NOTES=$(printf '%s\n' "$NOTES" | awk -v tag="$RELEASE_TAG" '{ t += length($0) + 1
+            if (t > 2800) { print "- More changes: see the " tag " GitHub release."; exit } print }')
           jq --arg n "$NOTES" '.version.release_notes = {"en-US": $n}' .github/amo-metadata.json > /tmp/amo-metadata.json
           mv /tmp/amo-metadata.json .github/amo-metadata.json
           printf 'Release notes:\n%s\n' "$NOTES"
