@@ -15,6 +15,11 @@ contracts.
   Run it without `--allow-dirty`, which silently skips writing `release.yml`. Its
   `uses: $/.github/workflows/build-xpi.yml` is GitHub's self-repository syntax (dist #2456),
   valid: do not "fix" it to `./` (a review flagged it as invalid in MARSTECH-910).
+- **AMO release notes**: `build-xpi.yml` adds `version.release_notes` to
+  `.github/amo-metadata.json` at sign time, from the `feat`/`fix` subjects since the previous tag
+  (scope and trailing `(...)` groups such as ticket IDs and `(#N)` stripped). No CHANGELOG: the
+  commit subject is the release note. web-ext sends the metadata's `version` object with every
+  new version.
 - **Lint**: `npx web-ext@10 lint --source-dir=firefox`, the same version as CI. Connector:
   `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`.
 - **Packaging**: everything under `firefox/` ships in the `.xpi`. Design sources (SVG icon
