@@ -1,0 +1,25 @@
+{
+  "name": {
+    "en-US": "Send to Taskwarrior Hardened",
+    "fr": "Send to Taskwarrior Hardened"
+  },
+  "summary": {
+    "en-US": "Save the current tab to Taskwarrior as a task, with tags, a project and a note. The extension only talks to a small connector on your own machine, which runs the task command.",
+    "fr": "Enregistre l'onglet courant dans Taskwarrior comme une tâche, avec des tags, un projet et une note. L'extension ne parle qu'à un petit connecteur sur votre machine, qui lance la commande task."
+  },
+  "description": {
+    "en-US": "Turn Taskwarrior into a read-later and bookmark manager: one click saves the page you are reading as a task you can tag, filter, annotate and mark done.\n\n**How it works**\n\n- Click the toolbar icon: the title and URL come from the active tab.\n- Add tags (separated by spaces, without +), pick a project, and write an optional note, saved as an annotation.\n- The extension sends this to `taskwarrior-connector`, a small Rust daemon listening on 127.0.0.1:34810, which runs `task add` for you (then `task sync`, if you have set up Taskwarrior sync).\n- A URL that is already in Taskwarrior is flagged instead of saved twice.\n\n**Privacy and security**\n\n- The extension only talks to 127.0.0.1. No server of ours, no account, no analytics.\n- It reads the active tab's title and URL only when you click the icon.\n- The connector rejects requests from web pages, and runs `task` with an argument list, never through a shell.\n\n**Requirements**\n\n- [Taskwarrior](https://taskwarrior.org/)\n- The connector, installed with Homebrew (`brew install alkaphreak/tap/taskwarrior-connector`) or the installer from the GitHub release, and kept running in the background (launchd and systemd setup scripts are in the repository).\n\nSetup guide and source: [github.com/alkaphreak/Taskwarrior-Connector](https://github.com/alkaphreak/Taskwarrior-Connector)\n\nHardened fork of [shenlebantongying/Taskwarrior-Connector](https://github.com/shenlebantongying/Taskwarrior-Connector) (GPLv3): fixes a command injection, restricts the connector to localhost, adds duplicate detection, projects and notes.",
+    "fr": "Faites de Taskwarrior un gestionnaire de lectures et de favoris : un clic enregistre la page que vous lisez comme une tâche, à taguer, filtrer, annoter et marquer comme faite.\n\n**Fonctionnement**\n\n- Cliquez sur l'icône de la barre d'outils : le titre et l'URL viennent de l'onglet actif.\n- Ajoutez des tags (séparés par des espaces, sans +), choisissez un projet et écrivez une note facultative, enregistrée en annotation.\n- L'extension envoie le tout à `taskwarrior-connector`, un petit démon Rust qui écoute sur 127.0.0.1:34810 et lance `task add` à votre place (puis `task sync`, si vous avez configuré la synchronisation de Taskwarrior).\n- Une URL déjà présente dans Taskwarrior est signalée au lieu d'être enregistrée deux fois.\n\n**Confidentialité et sécurité**\n\n- L'extension ne parle qu'à 127.0.0.1. Aucun serveur à nous, ni compte, ni statistiques.\n- Elle lit le titre et l'URL de l'onglet actif seulement quand vous cliquez sur l'icône.\n- Le connecteur refuse les requêtes venant de pages web, et lance `task` avec une liste d'arguments, jamais par un shell.\n\n**Prérequis**\n\n- [Taskwarrior](https://taskwarrior.org/)\n- Le connecteur, installé avec Homebrew (`brew install alkaphreak/tap/taskwarrior-connector`) ou l'installateur de la release GitHub, et lancé en arrière-plan (scripts d'installation launchd et systemd dans le dépôt).\n\nGuide d'installation et sources (en anglais) : [github.com/alkaphreak/Taskwarrior-Connector](https://github.com/alkaphreak/Taskwarrior-Connector)\n\nFork renforcé de [shenlebantongying/Taskwarrior-Connector](https://github.com/shenlebantongying/Taskwarrior-Connector) (GPLv3) : corrige une injection de commande, limite le connecteur à localhost, ajoute la détection des doublons, les projets et les notes."
+  },
+  "homepage": {
+    "en-US": "https://github.com/alkaphreak/Taskwarrior-Connector"
+  },
+  "support_url": {
+    "en-US": "https://github.com/alkaphreak/Taskwarrior-Connector/issues"
+  },
+  "categories": [
+    "bookmarks",
+    "tabs"
+  ],
+  "tags": []
+}
