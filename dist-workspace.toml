@@ -27,8 +27,6 @@ github-custom-job-permissions = { "build-xpi" = { contents = "write" } }
 # GitHub's macOS arm64 runners lack capacity (v0.4.0's aarch64 job was never picked up):
 # cross-compile Apple Silicon on the Intel runner, which starts in seconds.
 [dist.github-custom-runners]
-# TEMPORARY (MARSTECH-914, 2026-11-18): GitHub's macos-15-intel runners were not acquired for
-# two dry-runs in a row, so both macOS targets build on the maintainer's self-hosted Intel Mac.
-# Revert to macos-15-intel right after the 0.5.0 release; the runner is unregistered then.
-aarch64-apple-darwin = "marstech-mbp"
-x86_64-apple-darwin = "marstech-mbp"
+# If macos-15-intel is not acquired (it happened for v0.5.0), register a temporary self-hosted
+# runner with a custom label and point these targets at it (README, Releasing).
+aarch64-apple-darwin = "macos-15-intel"

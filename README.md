@@ -170,6 +170,10 @@ Recovery:
   the version is already uploaded and AMO rejects it a second time. Wait for AMO's approval,
   download the signed file from the AMO Developer Hub, then
   `gh release upload vX.Y.Z <file>.xpi`.
+- If GitHub never acquires a `macos-15-intel` runner (the jobs are cancelled with "not acquired
+  by Runner of type hosted"), register a temporary self-hosted Intel Mac runner with a custom
+  label, point both macOS targets at that label in `dist-workspace.toml`, release, then revert
+  and unregister it (done for 0.5.0). A self-hosted runner cannot reuse a hosted label.
 - A bad version already on AMO cannot be rolled back: disable it in the Developer Hub and fix
   forward with a patch release.
 
