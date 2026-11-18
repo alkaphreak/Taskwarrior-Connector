@@ -32,6 +32,7 @@
         .input::placeholder { color: var(--meta); }
         .input:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
         .input[aria-invalid="true"] { border-color: var(--danger); }
+        textarea.input { padding-block: var(--space-2); resize: vertical; }
         .field-help { margin-top: var(--space-2); color: var(--muted); font-size: var(--text-xs); }
 
         /* Popup layout, from MarsTech-Skin/prototypes/taskwarrior-popup.html */
@@ -72,11 +73,22 @@
         <input class="input" autocomplete="off" name="someUnusualName" type="text" id="tags" spellcheck="false" placeholder="read-later kotlin" aria-describedby="tags-help">
         <p class="field-help" id="tags-help">Separated by spaces, without +</p>
     </div>
+    <div>
+        <label class="field-label" for="project">project</label>
+        <select class="input" id="project" aria-describedby="project-help"></select>
+        <p class="field-help" id="project-help">List and default in the extension preferences</p>
+    </div>
+    <div>
+        <label class="field-label" for="description">description</label>
+        <textarea class="input" id="description" rows="3" placeholder="Why it is worth keeping" aria-describedby="description-help"></textarea>
+        <p class="field-help" id="description-help">Saved as an annotation</p>
+    </div>
 </main>
 <footer class="p-foot">
     <button class="btn btn-primary mt-clip submit" id="submit" type="button">Add to Taskwarrior</button>
     <div id="status" role="status" aria-live="polite" data-state="idle">project:Links · POST localhost only</div>
 </footer>
+<script src="projects.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

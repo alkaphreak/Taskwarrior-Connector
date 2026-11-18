@@ -18,13 +18,28 @@ function markInvalid(id, invalid) {
     document.getElementById(id).setAttribute("aria-invalid", String(invalid));
 }
 
+// Status line at rest shows where the task will go.
+function showProject() {
+    setStatus("project:" + document.getElementById("project").value + " · POST localhost only", "idle");
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+    const select = document.getElementById("project");
+    const submitBtn = document.getElementById("submit");
+    const fields = ["title", "url", "tags", "description"].map(id => document.getElementById(id));
+    // No save before the project list is in: an empty select would file it under Links.
+    submitBtn.disabled = true;
+    loadProjects().then(projects => {
+        for (const p of projects) select.add(new Option(p, p));
+        showProject();
+        submitBtn.disabled = false;
+    });
+    select.addEventListener("change", showProject);
     // Title and URL come pre-filled from the tab, so tags is the usual next input.
     document.getElementById("tags").focus();
     for (const id of ["title", "url"]) {
         document.getElementById(id).addEventListener("input", () => markInvalid(id, false));
     }
-    const submitBtn = document.getElementById("submit");
     submitBtn.addEventListener('click', function (evt) {
         const titleValue = document.getElementById("title").value.trim();
         const urlValue = document.getElementById("url").value.trim();
@@ -37,9 +52,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const body = new URLSearchParams({
             title: titleValue,
             url: urlValue,
-            tag: document.getElementById("tags").value
+            tag: document.getElementById("tags").value,
+            project: select.value,
+            description: document.getElementById("description").value
         });
         submitBtn.disabled = true;
+        // Read-only while pending: a success clears the form, edits made meanwhile would be lost.
+        for (const f of fields) f.readOnly = true;
+        select.disabled = true;
         submitBtn.textContent = "Saving…";
         setStatus("Saving…", "pending");
         fetch("http://127.0.0.1:34810/", {
@@ -53,19 +73,38 @@ document.addEventListener('DOMContentLoaded', function () {
                 setStatus("Error: " + j.error, "error");
                 return;
             }
-            setStatus(j.duplicate ? "Already saved." : "Saved.", j.duplicate ? "info" : "success");
-            // Clear the form on any successful outcome (saved or already-saved) —
+            const description = document.getElementById("description").value.trim();
+            if (j.duplicate) {
+                // Nothing was written: keep the form so a typed description is not lost.
+                setStatus(description ? "Already saved, description not added." : "Already saved.", "info");
+                return;
+            }
+            if (j.warning) {
+                // Task saved, annotation lost: keep the description so it can be added by hand.
+                setStatus("Saved, but " + j.warning, "info");
+                return;
+            }
+            if (j.project === undefined && (select.value !== "Links" || description)) {
+                // A connector from before MARSTECH-912 ignores project and description.
+                setStatus("Saved to project:Links only: connector too old, update it.", "info");
+                return;
+            }
+            setStatus("Saved to project:" + (j.project || "Links") + ".", "success");
+            // Clear the form once saved —
             // nothing left for the user to act on, keeps a stray click from
             // re-submitting the same values.
             document.getElementById("title").value = "";
             document.getElementById("url").value = "";
             document.getElementById("tags").value = "";
+            document.getElementById("description").value = "";
         })
         .catch(e => {
             setStatus("Error: connector not running (" + e + ")", "offline");
         })
         .finally(() => {
             submitBtn.disabled = false;
+            for (const f of fields) f.readOnly = false;
+            select.disabled = false;
             submitBtn.textContent = "Add to Taskwarrior";
         });
     });

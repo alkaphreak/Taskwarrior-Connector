@@ -19,7 +19,8 @@
 >
 > On top of the security fixes: duplicate-URL detection (skips re-saving a page you already
 > bookmarked), a 10 s timeout so a stuck `task` can't hang the daemon, clear
-> JSON errors instead of silent failures, bookmarks filed under a fixed `project:Links`, and a
+> JSON errors instead of silent failures, bookmarks filed under `project:Links` unless you pick another project, an optional
+> description saved as an annotation, and a
 > renamed extension ("Send to Taskwarrior Hardened") — distinct from the original's still-live
 > [AMO listing](https://addons.mozilla.org/firefox/addon/taskwarrior/) to avoid confusion between
 > the two.
@@ -95,7 +96,11 @@ Here is short list of commonly used commands if you intend to use taskwarrior as
 
 ## List your bookmarks
 
-Every bookmark saved by the extension is filed under a fixed `project:Links`:
+Every bookmark saved by the extension is filed under `project:Links`, unless another project is
+picked in the popup. The popup's project list and its default (the first entry) are set in the
+extension preferences (`about:addons` > Send to Taskwarrior Hardened > Preferences), stored with
+`browser.storage.sync`. A description typed in the popup is added as an annotation
+(`task <uuid> annotate`).
 
 ```bash
 task project:Links list

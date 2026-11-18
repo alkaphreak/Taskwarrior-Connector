@@ -17,11 +17,17 @@ which runs `task add`.
   `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`.
 - **Packaging**: everything under `firefox/` ships in the `.xpi`. Design sources (SVG icon
   masters in `assets/`) stay outside it.
-- **Popup contract**: `popup.js` uses the IDs `title`, `url`, `tags`, `submit`, `status`;
-  a renamed ID fails silently. Status styling is keyed on `#status[data-state]`, set by
+- **Popup contract**: `popup.js` uses the IDs `title`, `url`, `tags`, `project`, `description`,
+  `submit`, `status`; a renamed ID fails silently. The project list lives in
+  `browser.storage.sync` (`projects`, first entry = default), loaded by `projects.js`, edited by
+  `options.html`. Status styling is keyed on `#status[data-state]`, set by
   `setStatus(text, state)`.
 - **Connector**: listens on `127.0.0.1:34810`, POST only. Tags are space-separated without
-  `+` (the connector adds it); tasks go to `project:Links`. Requests need an
+  `+` (the connector adds it); POST fields `title`, `url` (required), `tag`, `project` (default `Links`,
+  `[A-Za-z0-9._-]{1,64}`, mirrored by `PROJECT_RE` in `projects.js`), `description` (annotation
+  via `task <uuid> annotate --`, whitespace folded to one line; a failed annotation answers
+  `ok` with a `warning`). A save answers the applied `project` and `annotated`: the popup flags a
+  connector too old to send them. Requests need an
   `Origin: moz-extension://` header (403 otherwise); responses are JSON with a
   `Content-Length` (tiny_http keeps the connection alive, it ignores a `Connection` header).
 - Issues are tracked in YouTrack (MARSTECH project), not GitHub Issues.

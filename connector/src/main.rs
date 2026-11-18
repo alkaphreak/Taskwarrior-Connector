@@ -1,5 +1,6 @@
 //! Local HTTP daemon behind the "Send to Taskwarrior Hardened" Firefox extension: saves the
-//! POSTed tab as a Taskwarrior task (`task +tag... add "<title>" url:<url> project:Links`).
+//! POSTed tab as a Taskwarrior task (`task +tag... add "<title>" url:<url> project:<project>`),
+//! annotated with the optional description.
 //!
 //! Hardened vs. the original 2022 Python version of shenlebantongying/Taskwarrior-Connector:
 //!   1. No shell: `task` gets an argument list, so a crafted page title cannot inject commands.
@@ -21,7 +22,7 @@ const HOST: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 34810;
 const TASK_TIMEOUT: Duration = Duration::from_secs(10);
 const SYNC_TIMEOUT: Duration = Duration::from_secs(15);
-const TASK_PROJECT: &str = "Links";
+const DEFAULT_PROJECT: &str = "Links";
 const MAX_BODY_BYTES: u64 = 1 << 20;
 
 /// An unrecoverable `task` invocation, carrying the HTTP status it should answer with.
@@ -38,6 +39,26 @@ impl TaskError {
             error: error.into(),
         }
     }
+}
+
+/// Taskwarrior project names the connector accepts: letters, digits, `.` (hierarchy), `-`, `_`.
+/// Anything else (spaces, `:`, quotes) is refused rather than passed on to `task`.
+fn valid_project(p: &str) -> bool {
+    (1..=64).contains(&p.len())
+        && p.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b'_'))
+}
+
+/// The uuid in `task rc.verbose=new-uuid add` output ("Created task <uuid>."), anchored on that
+/// line so a hook's own output cannot redirect the annotation.
+fn created_uuid(out: &str) -> Option<&str> {
+    let uuid = out
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("Created task "))?
+        .trim_end_matches('.');
+    let groups: Vec<usize> = uuid.split('-').map(str::len).collect();
+    (groups == [8, 4, 4, 4, 12] && uuid.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-'))
+        .then_some(uuid)
 }
 
 /// Reads a pipe to EOF on its own thread, so a verbose command never blocks on a full pipe.
@@ -169,8 +190,16 @@ fn handle(
         return outcome(400, json!({"error": "missing title/url"}));
     };
     let tags = field("tag").unwrap_or_default();
+    let project = field("project").unwrap_or_else(|| DEFAULT_PROJECT.into());
+    if !valid_project(&project) {
+        return outcome(400, json!({"error": "invalid project"}));
+    }
+    // One line: an annotation is shown on one row by `task list` and read as such by triage.
+    let description = field("description")
+        .map(|d| d.split_whitespace().collect::<Vec<_>>().join(" "))
+        .filter(|d| !d.is_empty());
 
-    let result = (|| {
+    let result: Result<_, TaskError> = (|| {
         // Count completed tasks too: this is a bookmark manager, "Done" means "read", not "gone".
         let existing = task(&[
             format!("url:{url}"),
@@ -181,13 +210,29 @@ fn handle(
             return Ok(None);
         }
         let mut args: Vec<String> = tags.split_whitespace().map(|t| format!("+{t}")).collect();
+        if description.is_some() {
+            // Prints the new task's uuid, needed to annotate it.
+            args.push("rc.verbose=new-uuid".into());
+        }
         args.extend([
             "add".into(),
             title,
             format!("url:{url}"),
-            format!("project:{TASK_PROJECT}"),
+            format!("project:{project}"),
         ]);
-        task(&args).map(Some)
+        let out = task(&args)?;
+        let Some(text) = &description else {
+            return Ok(Some((out, None)));
+        };
+        // The task is saved at this point: a failed annotation is a warning, not an error.
+        // `--` keeps `project:`, `+tag` or `due:` in the text from being read as modifications.
+        let warning = match created_uuid(&out) {
+            Some(uuid) => task(&[uuid.into(), "annotate".into(), "--".into(), text.clone()])
+                .err()
+                .map(|e| format!("description not added: {}", e.error)),
+            None => Some("description not added: no task uuid in 'task add' output".into()),
+        };
+        Ok(Some((out, warning)))
     })();
 
     match result {
@@ -195,11 +240,25 @@ fn handle(
             200,
             json!({"ok": true, "duplicate": true, "output": "URL already saved"}),
         ),
-        Ok(Some(out)) => Outcome {
-            status: 200,
-            body: json!({"ok": true, "duplicate": false, "output": out.trim()}),
-            saved: true,
-        },
+        Ok(Some((out, warning))) => {
+            // `project` and `annotated` tell the extension what was applied (an older connector
+            // ignores both fields and sends neither).
+            let mut body = json!({
+                "ok": true,
+                "duplicate": false,
+                "output": out.trim(),
+                "project": project,
+                "annotated": description.is_some() && warning.is_none(),
+            });
+            if let Some(w) = warning {
+                body["warning"] = w.into();
+            }
+            Outcome {
+                status: 200,
+                body,
+                saved: true,
+            }
+        }
         Err(e) => outcome(e.status, json!({"error": e.error})),
     }
 }
@@ -352,7 +411,7 @@ mod tests {
         assert!(out.saved);
         assert_eq!(
             out.body,
-            json!({"ok": true, "duplicate": false, "output": "Created task 7."})
+            json!({"ok": true, "duplicate": false, "output": "Created task 7.", "project": "Links", "annotated": false})
         );
         let seen = seen.borrow();
         assert_eq!(
@@ -370,6 +429,92 @@ mod tests {
                 "project:Links"
             ]
         );
+    }
+
+    #[test]
+    fn uses_chosen_project_and_annotates_description() {
+        let seen = RefCell::new(Vec::new());
+        let task = |args: &[String]| {
+            seen.borrow_mut().push(args.to_vec());
+            Ok(match args.last().map(String::as_str) {
+                Some("count") => "0\n".into(),
+                _ if args.contains(&"add".to_string()) => {
+                    "Created task 4be96f7d-4942-49c8-badf-b5660c2984ee.\n".into()
+                }
+                _ => String::new(),
+            })
+        };
+        let out = handle(
+            &Method::Post,
+            EXT,
+            b"title=a&url=b&project=Lectures.rust&description=see%0A+project%3AX+%2Btag",
+            &task,
+        );
+        assert_eq!(out.status, 200);
+        assert!(out.saved);
+        assert!(out.body.get("warning").is_none(), "{}", out.body);
+        assert_eq!(
+            (&out.body["project"], &out.body["annotated"]),
+            (&json!("Lectures.rust"), &json!(true))
+        );
+        let seen = seen.borrow();
+        assert_eq!(
+            seen[1],
+            [
+                "rc.verbose=new-uuid",
+                "add",
+                "a",
+                "url:b",
+                "project:Lectures.rust"
+            ]
+        );
+        assert_eq!(
+            seen[2],
+            [
+                "4be96f7d-4942-49c8-badf-b5660c2984ee",
+                "annotate",
+                "--",
+                "see project:X +tag"
+            ]
+        );
+    }
+
+    #[test]
+    fn created_uuid_reads_only_the_created_line() {
+        let uuid = "4be96f7d-4942-49c8-badf-b5660c2984ee";
+        let out = format!(
+            "------------------------------------\nhook 11111111-2222-3333-4444-555555555555\nCreated task {uuid}.\n"
+        );
+        assert_eq!(created_uuid(&out), Some(uuid));
+        assert_eq!(created_uuid("Created task 7."), None);
+        assert_eq!(created_uuid("------------------------------------"), None);
+    }
+
+    #[test]
+    fn rejects_invalid_projects() {
+        let task = fake("0");
+        for body in [
+            &b"title=a&url=b&project=a+b"[..],
+            b"title=a&url=b&project=x%3Ay",
+            b"title=a&url=b&project=%22q%22",
+        ] {
+            let out = handle(&Method::Post, EXT, body, &task);
+            assert_eq!(out.status, 400, "{}", String::from_utf8_lossy(body));
+            assert!(!out.saved);
+        }
+    }
+
+    #[test]
+    fn failed_annotation_is_a_warning() {
+        let task = |args: &[String]| match args.get(1).map(String::as_str) {
+            Some("annotate") => Err(TaskError::new(500, "locked")),
+            _ if args.last().is_some_and(|a| a == "count") => Ok("0".into()),
+            _ => Ok("Created task 4be96f7d-4942-49c8-badf-b5660c2984ee.".into()),
+        };
+        let out = handle(&Method::Post, EXT, b"title=a&url=b&description=d", &task);
+        assert_eq!(out.status, 200);
+        assert!(out.saved);
+        assert_eq!(out.body["warning"], "description not added: locked");
     }
 
     #[test]
@@ -462,13 +607,13 @@ mod tests {
         stream.read_to_string(&mut response).unwrap();
         let lower = response.to_ascii_lowercase();
         assert!(response.starts_with("HTTP/1.1 200"), "{response}");
-        assert!(lower.contains("content-length: 56"), "{response}");
+        assert!(lower.contains("content-length: 92"), "{response}");
         assert!(
             lower.contains("content-type: application/json"),
             "{response}"
         );
         assert!(
-            response.ends_with(r#"{"duplicate":false,"ok":true,"output":"Created task 1."}"#),
+            response.ends_with(r#"{"annotated":false,"duplicate":false,"ok":true,"output":"Created task 1.","project":"Links"}"#),
             "{response}"
         );
     }
