@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ env.RELEASE_TAG || github.ref }}
+          fetch-depth: 0 # release notes need the previous tag
 
       - uses: actions/setup-node@v5
         with:
@@ -47,6 +48,26 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' firefox/manifest.json > /tmp/manifest.json
           mv /tmp/manifest.json firefox/manifest.json
           echo "Signing as version $VERSION"
+
+      - name: Release notes from feat/fix commits
+        if: env.RELEASE_TAG != ''
+        run: |
+          # AMO shows these in about:addons > Release notes. web-ext sends the metadata's
+          # "version" object with every new version, so release_notes rides along with the license.
+          set -euo pipefail
+          PREV=$(git describe --tags --abbrev=0 "${RELEASE_TAG}^" 2>/dev/null || true)
+          if [[ -z "$PREV" && $(git tag | wc -l) -gt 1 ]]; then
+            echo "No previous tag found before $RELEASE_TAG although tags exist" >&2; exit 1
+          fi
+          NOTES=$(git log --format=%s "${PREV:+$PREV..}$RELEASE_TAG" \
+            | sed -nE 's/^(feat|fix)(\([^)]*\))?!?: //p' | sed -E 's/( \([^)]*\))+$//; s/^/- /')
+          [[ -n "$NOTES" ]] || NOTES="- Maintenance release."
+          # AMO caps release_notes at 3000 characters: keep whole bullets only.
+          NOTES=$(printf '%s\n' "$NOTES" | awk -v tag="$RELEASE_TAG" '{ t += length($0) + 1
+            if (t > 2800) { print "- More changes: see the " tag " GitHub release."; exit } print }')
+          jq --arg n "$NOTES" '.version.release_notes = {"en-US": $n}' .github/amo-metadata.json > /tmp/amo-metadata.json
+          mv /tmp/amo-metadata.json .github/amo-metadata.json
+          printf 'Release notes:\n%s\n' "$NOTES"
 
       - name: Lint extension
         run: npx web-ext@10 lint --source-dir=firefox

@@ -155,6 +155,8 @@ gh workflow run bump-version.yml --repo alkaphreak/Taskwarrior-Connector -f bump
   - calls `build-xpi.yml`.
 - **`build-xpi.yml`**:
   - on a release, lints the extension and signs it on AMO (listed channel);
+  - on a release, sends AMO release notes built from the `feat`/`fix` commit subjects since
+    the previous tag (shown in `about:addons` > Release notes): write those subjects for users;
   - attaches the signed `.xpi` to the release;
   - a manual run (`workflow_dispatch`) builds `<version>.<run_number>` and signs it on the
     unlisted channel: never published on AMO nor auto-updated, the `.xpi` is a workflow
