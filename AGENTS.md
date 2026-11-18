@@ -2,7 +2,9 @@
 
 Hardened fork of shenlebantongying/Taskwarrior-Connector: a Firefox extension (`firefox/`) that
 POSTs the current tab to a local Rust daemon (`connector/`, binary `taskwarrior-connector`),
-which runs `task add`.
+which runs `task add`. `README.md` is the user-facing reference (install, configuration,
+security, release process); keep it in step with any change to those, this file keeps the
+contracts.
 
 - **Version**: never bump `firefox/manifest.json` or `connector/Cargo.toml` by hand.
   `bump-version.yml` sets both (one shared version, dist refuses a tag that differs from the
