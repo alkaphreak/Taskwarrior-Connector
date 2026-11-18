@@ -1,6 +1,6 @@
 [package]
 name = "taskwarrior-connector"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 description = "Local daemon behind the Send to Taskwarrior Hardened Firefox extension: turns a POSTed page into a `task add`."
 license = "GPL-3.0-only"
