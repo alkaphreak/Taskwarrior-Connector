@@ -4,13 +4,18 @@ name: Update AMO listing
 # the "version" object of amo-metadata.json for an existing add-on, so the listing itself goes
 # through the add-on edit API. Run it by hand after changing .github/amo-listing.json, the
 # 128px icon or assets/screenshots/*.png: it replaces the listing, so a rerun is safe.
-# AMO also has an hourly write quota: after a partial run, rerun with screenshots_only so the
-# listing text and icon, already applied, do not spend it again.
+# AMO caps writes per hour and per day (a full run costs 2 + 2 x screenshots): after a partial
+# run, rerun with screenshots_only (text and icon went through) or prune_only (new screenshots
+# went through, old ones left) so nothing already applied spends the quota again.
 on:
   workflow_dispatch:
     inputs:
       screenshots_only:
         description: Only replace the screenshots (listing text and icon already up to date)
+        type: boolean
+        default: false
+      prune_only:
+        description: Only delete old screenshots, keeping the newest one per PNG in the repo
         type: boolean
         default: false
 
@@ -27,6 +32,7 @@ jobs:
       WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
       WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
       SCREENSHOTS_ONLY: ${{ inputs.screenshots_only }}
+      PRUNE_ONLY: ${{ inputs.prune_only }}
     steps:
       - uses: actions/checkout@v5
 
@@ -65,7 +71,7 @@ jobs:
           }
           URL="$API/$ADDON/"
 
-          if [[ "$SCREENSHOTS_ONLY" != true ]]; then
+          if [[ "$SCREENSHOTS_ONLY" != true && "$PRUNE_ONLY" != true ]]; then
             amo -X PATCH -H "Content-Type: application/json" --data @.github/amo-listing.json "$URL" > /dev/null
             amo -X PATCH -F "icon=@firefox/icons/icon-128.png" "$URL" > /dev/null
           fi
@@ -73,12 +79,18 @@ jobs:
           # Replace the screenshots: upload assets/screenshots/*.png in name order first, then
           # delete the old ones, so a failed upload never leaves the listing without screenshots.
           detail=$(amo "$URL")
-          old_ids=$(jq -r '.previews[].id' <<< "$detail")
-          pos=0
-          for png in assets/screenshots/*.png; do
-            amo -X POST -F "image=@$png" -F "position=$pos" "${URL}previews/" > /dev/null
-            pos=$((pos + 1))
-          done
+          if [[ "$PRUNE_ONLY" == true ]]; then
+            # Preview IDs grow with each upload: keep the newest one per repo PNG.
+            n=$(ls assets/screenshots/*.png | wc -l)
+            old_ids=$(jq -r '.previews[].id' <<< "$detail" | sort -n | head -n "-$n")
+          else
+            old_ids=$(jq -r '.previews[].id' <<< "$detail")
+            pos=0
+            for png in assets/screenshots/*.png; do
+              amo -X POST -F "image=@$png" -F "position=$pos" "${URL}previews/" > /dev/null
+              pos=$((pos + 1))
+            done
+          fi
           for id in $old_ids; do
             amo -X DELETE "${URL}previews/$id/" > /dev/null
           done
