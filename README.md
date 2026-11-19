@@ -20,7 +20,8 @@ Browser bookmarks are a folder tree with no dates and no state. Taskwarrior give
 
 - tags and a project instead of a single folder, with Taskwarrior's full query language
 - the date it was saved, and a done state once read, so old links stay searchable
-- plain-text storage that is easy to back up and sync, and that works with any other CLI tool
+- local storage (SQLite since Taskwarrior 3) that you can back up, sync, and export to JSON for
+  other tools
 
 ## How it works
 
@@ -95,10 +96,12 @@ script is safe to re-run, for example after upgrading the binary.
 ```bash
 task project:Links list                      # bookmarks saved with the default project
 task +rust list                              # by tag
-task _get <id>.url | xargs open              # open a bookmark (macOS)
-task _get <id>.url | xargs xdg-open          # open a bookmark (Linux)
-task <id> done                               # mark it read, it stays searchable
+task _get 42.url | xargs open                # open a bookmark (macOS)
+task _get 42.url | xargs xdg-open            # open a bookmark (Linux)
+task 42 done                                 # mark it read, it stays searchable
 ```
+
+Replace `42` with the task ID shown by `task list`.
 
 See the [Taskwarrior documentation](https://taskwarrior.org/docs/) for filters, reports and sync.
 
@@ -133,7 +136,8 @@ npx web-ext@10 lint --source-dir=firefox                                       #
 
 Everything under `firefox/` ships in the `.xpi`. The SVG icon masters live in `assets/`.
 `AGENTS.md` lists the contracts between the popup and the connector. Bug reports and pull
-requests are welcome on GitHub; the maintainer tracks planned work in a private YouTrack.
+requests are welcome on GitHub; the maintainer mirrors them, and tracks planned work, in a
+private YouTrack.
 
 ## Releasing
 
