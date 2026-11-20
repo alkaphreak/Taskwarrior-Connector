@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Send to Taskwarrior Hardened",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Save the current tab to Taskwarrior as a task, with tags, a project and a note, through a local connector (127.0.0.1 only). Hardened fork of shenlebantongying/Taskwarrior-Connector (GPLv3).",
   "author": "Alkaphreak",
   "homepage_url": "https://github.com/alkaphreak/Taskwarrior-Connector",
