@@ -27,25 +27,30 @@
         @media (hover: hover) { .btn-primary:hover { background: var(--accent-hover); } }
         .btn-primary:active { background: var(--accent-active); }
         .btn:disabled { background: var(--surface-warm); color: var(--meta); border-color: var(--border); cursor: not-allowed; }
-        .field-label { display: block; margin-bottom: var(--space-2); font: 500 var(--text-xs)/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: var(--mt-label-tracking); color: var(--fg-2); }
+        .field-label { display: block; margin-bottom: var(--space-1); font: 500 var(--text-xs)/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: var(--mt-label-tracking); color: var(--fg-2); }
         .input { width: 100%; min-height: 44px; padding: 0 var(--space-3); background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 0; font: var(--text-sm)/1.4 var(--font-mono); transition: border-color var(--motion-fast) var(--ease-standard); }
         .input::placeholder { color: var(--meta); }
         .input:focus { outline: 2px solid transparent; border-color: var(--accent); box-shadow: var(--focus-ring); }
         .input[aria-invalid="true"] { border-color: var(--danger); }
         textarea.input { padding-block: var(--space-2); resize: vertical; }
         .field-help { margin-top: var(--space-2); color: var(--muted); font-size: var(--text-xs); }
+        /* Help text on the label row: keeps the popup under Firefox's 600px popup height (MARSTECH-933) */
+        .field-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-1); }
+        .field-head > * { margin: 0; }
 
         /* Popup layout, from MarsTech-Skin/prototypes/taskwarrior-popup.html */
+        html { overflow-x: hidden; }
         body { margin: 0; width: 400px; background: var(--surface); color: var(--fg); font: var(--text-base)/var(--leading-body) var(--font-body); }
         .p-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); }
         .p-brand { margin: 0; font: 600 var(--text-sm)/1.25 var(--font-display); letter-spacing: var(--tracking-display); text-transform: uppercase; }
         .p-brand .dot { color: var(--accent); }
-        .p-body { padding: var(--space-4); display: grid; gap: var(--space-4); }
+        .p-body { padding: var(--space-4); display: grid; gap: var(--space-3); }
         .p-foot { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border); display: grid; gap: var(--space-2); }
         .submit { width: 100%; }
 
         /* Status line: popup.js sets data-state, the square carries the state colour */
-        #status { min-height: 20px; font: var(--text-xs)/1.5 var(--font-mono); display: flex; gap: var(--space-2); align-items: baseline; color: var(--muted); overflow-wrap: anywhere; }
+        /* Capped at two lines so a long connector error cannot push the popup past 600px; the rest scrolls (keyboard-scrollable in Firefox) */
+        #status { min-height: 20px; max-height: 3em; overflow-y: auto; font: var(--text-xs)/1.5 var(--font-mono); display: flex; gap: var(--space-2); align-items: baseline; color: var(--muted); overflow-wrap: anywhere; }
         #status::before { content: ""; width: 8px; height: 8px; flex: none; background: currentColor; transform: translateY(-1px); }
         #status[data-state="success"] { color: var(--success); }
         #status[data-state="info"] { color: var(--warn); }
@@ -69,19 +74,25 @@
         <input class="input" autocomplete="off" name="someUnusualName" type="text" id="url" spellcheck="false">
     </div>
     <div>
-        <label class="field-label" for="tags">tags</label>
+        <div class="field-head">
+            <label class="field-label" for="tags">tags</label>
+            <p class="field-help" id="tags-help">Separated by spaces, without +</p>
+        </div>
         <input class="input" autocomplete="off" name="someUnusualName" type="text" id="tags" spellcheck="false" placeholder="read-later kotlin" aria-describedby="tags-help">
-        <p class="field-help" id="tags-help">Separated by spaces, without +</p>
     </div>
     <div>
-        <label class="field-label" for="project">project</label>
+        <div class="field-head">
+            <label class="field-label" for="project">project</label>
+            <p class="field-help" id="project-help">List and default in preferences</p>
+        </div>
         <select class="input" id="project" aria-describedby="project-help"></select>
-        <p class="field-help" id="project-help">List and default in the extension preferences</p>
     </div>
     <div>
-        <label class="field-label" for="description">description</label>
-        <textarea class="input" id="description" rows="3" placeholder="Why it is worth keeping" aria-describedby="description-help"></textarea>
-        <p class="field-help" id="description-help">Saved as an annotation</p>
+        <div class="field-head">
+            <label class="field-label" for="description">description</label>
+            <p class="field-help" id="description-help">Saved as an annotation</p>
+        </div>
+        <textarea class="input" id="description" rows="2" placeholder="Why it is worth keeping" aria-describedby="description-help"></textarea>
     </div>
 </main>
 <footer class="p-foot">
