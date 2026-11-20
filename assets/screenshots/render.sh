@@ -43,7 +43,7 @@ sed -i '' 's|<script src="projects.js">|<script src="stub.js"></script><script s
 cat > "$WORK/frame.html" <<'EOF'
 <!DOCTYPE html><html><head><style>
 html, body { margin: 0; width: 1280px; height: 800px; background: #05070a; overflow: hidden; }
-iframe { position: absolute; left: 440px; top: 55px; width: 400px; height: 690px; border: 1px solid #1c2430; background: #0a0e13; }
+iframe { position: absolute; left: 440px; top: 100px; width: 400px; height: 600px; border: 1px solid #1c2430; background: #0a0e13; }
 </style></head><body><iframe id="p"></iframe>
 <script>document.getElementById("p").src = "popup.html" + location.search;</script></body></html>
 EOF
