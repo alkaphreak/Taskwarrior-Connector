@@ -10,7 +10,6 @@ browser.tabs.query({active: true, currentWindow: true})
 function setStatus(text, state) {
     const status = document.getElementById("status");
     status.textContent = text;
-    status.title = text;
     status.dataset.state = state;
 }
 

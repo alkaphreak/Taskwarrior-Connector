@@ -49,8 +49,8 @@
         .submit { width: 100%; }
 
         /* Status line: popup.js sets data-state, the square carries the state colour */
-        /* Capped at two lines so a long connector error cannot push the popup past 600px; the full text is in title */
-        #status { min-height: 20px; max-height: 3em; overflow: hidden; font: var(--text-xs)/1.5 var(--font-mono); display: flex; gap: var(--space-2); align-items: baseline; color: var(--muted); overflow-wrap: anywhere; }
+        /* Capped at two lines so a long connector error cannot push the popup past 600px; the rest scrolls (keyboard-scrollable in Firefox) */
+        #status { min-height: 20px; max-height: 3em; overflow-y: auto; font: var(--text-xs)/1.5 var(--font-mono); display: flex; gap: var(--space-2); align-items: baseline; color: var(--muted); overflow-wrap: anywhere; }
         #status::before { content: ""; width: 8px; height: 8px; flex: none; background: currentColor; transform: translateY(-1px); }
         #status[data-state="success"] { color: var(--success); }
         #status[data-state="info"] { color: var(--warn); }
