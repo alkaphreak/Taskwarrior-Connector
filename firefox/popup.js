@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
         select.disabled = true;
         submitBtn.textContent = "Saving…";
         setStatus("Saving…", "pending");
+        let closing = false;
         fetch("http://127.0.0.1:34810/", {
             method: "POST",
             headers: {"Content-Type": "application/x-www-form-urlencoded"},
@@ -97,11 +98,16 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById("url").value = "";
             document.getElementById("tags").value = "";
             document.getElementById("description").value = "";
+            // Nothing left to act on: close, form kept locked so input typed meanwhile is not lost.
+            closing = true;
+            submitBtn.textContent = "Saved";
+            setTimeout(() => window.close(), 1500);
         })
         .catch(e => {
             setStatus("Error: connector not running (" + e + ")", "offline");
         })
         .finally(() => {
+            if (closing) return;
             submitBtn.disabled = false;
             for (const f of fields) f.readOnly = false;
             select.disabled = false;
